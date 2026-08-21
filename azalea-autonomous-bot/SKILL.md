@@ -126,10 +126,34 @@ Return one of:
 
 Include evidence: task ID, action, observed packets/events, before/after state, and timeout/retry data.
 
+## Security hardening
+
+The bot is a client and a potential target; harden it like any network-facing component:
+
+- **Credentials**: never hardcode Microsoft accounts, tokens, or server passwords. Load them from environment variables or a secrets file outside the repository, and never commit them.
+- **Input validation**: treat every task parameter as untrusted. Validate coordinates, item names, quantities, and commands against allowlists before acting. Never interpolate task input into shell commands or file paths.
+- **Least privilege**: run the bot with the minimum account permissions the task requires. Do not grant operator/OP privileges to a bot account unless the task genuinely requires them.
+- **Rate limiting**: respect server rate limits and plugin cooldowns. Do not spam actions; a bot that hammers the server triggers anti-cheat and disrupts other players.
+- **Audit trail**: log every action with a task ID, timestamp, and outcome. If the bot is ever compromised or misbehaves, the audit trail is the only way to reconstruct what happened.
+- **Fail closed**: on any error, uncertainty, or unexpected state, stop and report rather than continuing. Never guess past an unverified state.
+
+## Testing
+
+Test the bot against a local `run-paper` server before any remote deployment:
+
+- **Unit tests**: test task classification, postcondition validators, and failure-policy logic in isolation with `cargo test`. These do not need a live server.
+- **Integration tests**: run the bot against a local `run-paper` server and assert the server-observed postcondition for each task. Use a dedicated test world so bot actions cannot damage real progress.
+- **Negative tests**: verify the bot reports `blocked` or `uncertain` for unverifiable, unauthorized, or ambiguous tasks — never `completed`.
+- **Idempotency**: run the same task twice and confirm the second run reports `completed` without duplicating side effects (e.g. no double item transfer, no duplicate crafting).
+- **Reconnect tests**: kill and restart the server while a task is in flight; confirm the bot reconnects and either completes or reports `uncertain` with evidence, never a false `completed`.
+
+Run the full suite before every remote deployment, and keep the integration harness in the same repository as the bot so it stays reproducible.
+
 ## Verify
 
 ```bash
 cargo build
+cargo test
 # Against a local run-paper server:
 MC_SERVER=localhost cargo run
 # Against a configured remote server:
@@ -149,3 +173,9 @@ Manually dispatch a task and confirm the bot reports `completed` only after the 
 | Automate without authorization | Restrict to owned/authorized servers and accounts | Bypassing anti-cheat, permissions, or rate limits is out of scope |
 | Guess a remote address | Require explicit host/IP configuration | Implicit remote connections are unsafe |
 | Treat every packet as authoritative for the task | Correlate packets with the specific action and postcondition | Unrelated updates are not evidence of completion |
+| Hardcode bot credentials in the repository | Load from environment variables or a secrets file | Committed secrets leak to anyone with repo access |
+| Trust task input without validation | Validate against allowlists before acting | Malicious input can inject commands or corrupt state |
+| Run the bot with OP/operator privileges | Least privilege per task | A compromised bot with OP can destroy the server |
+| Deploy to remote without local tests | Test against local run-paper first | Unverified bot behavior can damage a live server |
+| Skip negative tests | Assert `blocked`/`uncertain` for unverifiable tasks | The bot must never report `completed` on a guess |
+| No audit trail | Log every action with task ID and outcome | Without logs, misbehavior cannot be reconstructed |

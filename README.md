@@ -8,7 +8,9 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 |---|---|
 | [project-setup](project-setup/SKILL.md) | Scaffold a Paper 26.2 plugin: pinned Gradle/run-paper/Spotless versions, CalVer versioning, plugin.yml, and the recommended multi-module Java layout |
 | [ci-release](ci-release/SKILL.md) | CI and release engineering: GitHub Actions, CalVer `YYYY.MM.DD.<github_run_number>` versioning, rolling nightly releases, stable releases, and public-project shields.io badges |
-| [azalea-autonomous-bot](azalea-autonomous-bot/SKILL.md) | Autonomous Minecraft bots in Rust with Azalea: task classification, packet-based completion validation, and fail-closed execution |
+| [azalea-autonomous-bot](azalea-autonomous-bot/SKILL.md) | Autonomous Minecraft bots in Rust with Azalea: task classification, packet-based completion validation, security hardening, and testing |
+| [database-integration](database-integration/SKILL.md) | Paper plugin persistence: HikariCP pooling, async SQLite/MySQL access, schema migrations |
+| [performance-optimization](performance-optimization/SKILL.md) | Diagnose and fix Paper lag: Spark profiling, main-thread discipline, async chunk loading, listener hygiene |
 
 ## Conventions
 
