@@ -16,8 +16,10 @@ Pins verified 2026-08-21 against Maven Central and the PaperMC developer docs.
 | Component | Version |
 |---|---|
 | HikariCP | **7.0.2** |
-| sqlite-jdbc | **3.53.2.1** |
+| SQLite JDBC driver | **bundled with Paper** (do not shade) |
 | Java toolchain | **25** |
+
+Paper bundles the SQLite JDBC driver at runtime. Do not package or shade `org.xerial:sqlite-jdbc` — a duplicate driver conflicts with Paper's. The driver is available from the server, not from the plugin jar.
 
 ## Dependencies
 
@@ -25,11 +27,10 @@ Pins verified 2026-08-21 against Maven Central and the PaperMC developer docs.
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
     implementation("com.zaxxer:HikariCP:7.0.2")
-    implementation("org.xerial:sqlite-jdbc:3.53.2.1")
 }
 ```
 
-Shade HikariCP and the SQLite driver into the plugin jar so they are not missing at runtime. The Paper API itself is `compileOnly`.
+Shade only HikariCP into the plugin jar — Paper does not bundle it. The Paper API and the SQLite driver are both `compileOnly` (the driver comes from the server at runtime). If you target Spigot/Bukkit or another fork, verify whether the driver is bundled there before assuming it is.
 
 ## Connection pool
 
@@ -171,3 +172,4 @@ Start the server, confirm the database file is created, insert a row through a c
 | Lazy schema creation from request path | Startup migration with stored version | Concurrent first-requests race on DDL |
 | Non-idempotent migrations | `IF NOT EXISTS` or version-guarded DDL | Partial migration corrupts state |
 | Closing the pool only on unload | Close in `onDisable` | Leaks connections across reloads |
+| Shading `sqlite-jdbc` into the plugin jar | Use Paper's bundled driver (`compileOnly` or nothing) | A duplicate driver conflicts with Paper's runtime driver |
