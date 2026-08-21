@@ -115,6 +115,19 @@ public final class ExamplePlugin extends JavaPlugin {
 }
 ```
 
+## Multi-module layout (recommended for Java)
+
+For Java projects expected to grow beyond a single module, prefer a `[plugin]-common`, `[plugin]-api`, and `[plugin]-paper` multi-module Gradle layout. This is a recommendation, not a requirement — keep small plugins single-module until the separation provides clear value.
+
+```text
+[plugin]/
+├── [plugin]-common/   # shared domain models, logic, utilities
+├── [plugin]-api/      # public plugin interfaces and contracts
+└── [plugin]-paper/    # Paper implementation, commands, listeners, plugin.yml
+```
+
+Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`. The Paper module depends only on the API boundary; platform code stays behind the API.
+
 ## Verify the setup
 
 ```bash
