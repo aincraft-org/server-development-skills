@@ -1,0 +1,31 @@
+# server-development-skills
+
+Curated, verified skills for Minecraft/Paper server development. Agents working in this repository maintain and add skills; the skills themselves encode the conventions and workflows applied when building server projects.
+
+## Skills
+
+| Skill | Purpose |
+|---|---|
+| [project-setup](project-setup/SKILL.md) | Scaffold a Paper 26.2 plugin: pinned Gradle/run-paper/Spotless versions, CalVer versioning, plugin.yml, and the recommended multi-module Java layout |
+| [ci-release](ci-release/SKILL.md) | CI and release engineering: GitHub Actions, CalVer `YYYY.MM.DD.<github_run_number>` versioning, rolling nightly releases, stable releases, and public-project shields.io badges |
+
+## Conventions
+
+- One directory per skill: `<name>/SKILL.md`.
+- Frontmatter: `name` plus a `description` written as trigger conditions ("Use when ..."), not a prose summary — the description is what makes the skill discoverable.
+- Version pins must be verified against official docs before committing; record the verification date in the skill.
+- Capture observed failures as a "Common mistakes" table in the skill.
+
+## Usage
+
+Skills are consumed by agent harnesses that load `SKILL.md` files (e.g. superpowers-style skill directories). Each skill is self-contained: read the skill, follow its pinned versions and conventions, and apply its verify commands before reporting completion.
+
+## Contributing
+
+To add or update a skill:
+
+1. Create or edit `<name>/SKILL.md`.
+2. Write the `description` as trigger conditions, not a summary.
+3. Verify every version pin against official docs and record the verification date.
+4. Include a "Common mistakes" table from observed failures.
+5. Commit one skill change per commit.
