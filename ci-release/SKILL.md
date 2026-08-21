@@ -77,10 +77,10 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew build spotlessCheck
+      - run: ./gradlew clean check
 ```
 
-Keep the formatting/style gate in the CI command. A build that compiles but skips the repository's style check is not a passing CI contract.
+`check` is the canonical quality gate. It includes Spotless, Checkstyle, PMD, and SpotBugs configured by the `project-setup` skill. CI MUST invoke `./gradlew clean check`; a build that compiles but bypasses that gate is not a passing CI contract.
 
 ## Rolling nightly release
 
@@ -107,7 +107,7 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew build spotlessCheck
+      - run: ./gradlew clean check
       - name: Replace rolling nightly release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -129,7 +129,7 @@ Stable releases use the exact CalVer version built by the workflow. A release wo
 - name: Build release
   run: |
     VERSION="$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}"
-    ./gradlew -PbuildVersion="$VERSION" build spotlessCheck
+    ./gradlew -PbuildVersion="$VERSION" clean check
     echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
 - name: Publish release
@@ -165,7 +165,7 @@ The workflow-status badge path uses the workflow filename (`ci.yml`), not the wo
 ## Verify
 
 ```bash
-./gradlew build spotlessCheck
+./gradlew clean check
 ```
 
 For a public repository, manually dispatch `nightly.yml` once after adding it. Confirm that the build succeeds, the release is marked pre-release, the `nightly` tag points at the new commit, and the README badges resolve.
@@ -182,4 +182,6 @@ For a public repository, manually dispatch `nightly.yml` once after adding it. C
 | `github/workflow/status/...` badge URL | `github/actions/workflow/status/.../<workflow>.yml` | Shields.io uses the workflow-file endpoint |
 | Badges in a private repository | No shields.io badges for private/internal projects | Public badge endpoints cannot reliably resolve private metadata |
 | Hardcoded versions in both Gradle and a descriptor | Expand the descriptor from Gradle `version` | Two version sources drift |
-| CI runs `build` but not `spotlessCheck` | Run `./gradlew build spotlessCheck` | A compiling build can still violate the repository's style gate |
+| CI runs `./gradlew build` alone | Run `./gradlew clean check` | `build` does not run the full analyzer gate wired into `check` |
+| CI runs `./gradlew spotlessCheck` alone | Run `./gradlew clean check` | Formatting passes while Checkstyle, PMD, or SpotBugs violations remain |
+| Publishing a release before the gate succeeds | Run `./gradlew clean check` first; publish only after it succeeds | Artifacts built or published before `clean check` can ship static-analysis failures |
