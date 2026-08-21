@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, pinning toolchain or plugin versions, configuring run-paper test servers, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo and questions about current Gradle, run-paper, or google-java-format versions.
+description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, or google-java-format versions.
 ---
 
 # Project Setup (Paper 26.2 Plugin)
@@ -43,8 +43,17 @@ plugins {
     id("xyz.jpenilla.run-paper") version "3.1.0"
 }
 
-group = "io.github.username"   // reverse-domain; io.github.<name> if no domain
-version = "1.0.0"
+val calverDate = java.time.LocalDate.now(java.time.ZoneOffset.UTC)
+    .format(java.time.format.DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+
+// CI: YYYY.MM.DD.<github_run_number>; local builds: dated -SNAPSHOT.
+version = providers.gradleProperty("buildVersion")
+    .orElse(
+        providers.environmentVariable("GITHUB_RUN_NUMBER")
+            .map { "$calverDate.$it" }
+    )
+    .orElse("$calverDate-SNAPSHOT")
+    .get()
 
 repositories {
     maven {
@@ -57,6 +66,12 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
 }
+processResources {
+    filesMatching("plugin.yml") {
+        expand("version" to version)
+    }
+}
+
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
@@ -79,8 +94,7 @@ tasks {
 
 ```yaml
 name: ExamplePlugin
-version: 1.0.0
-main: io.github.username.ExamplePlugin
+version: '${version}'
 api-version: '26.2'
 description: An example plugin
 ```
@@ -118,6 +132,7 @@ public final class ExamplePlugin extends JavaPlugin {
 | `com.github.sherter.google-java-format` | Spotless + `googleJavaFormat` | sherter plugin is abandoned |
 | Gradle `8.x` wrapper | `9.7.1` | current stable |
 | `com.example.*` package | `io.github.<name>.*` | Paper convention: reverse-domain |
+| `version = "1.0.0"` | CalVer from `GITHUB_RUN_NUMBER` | Use the `ci-release` convention; versions must be unique and sortable |
 | 4-space indent by hand | `./gradlew spotlessApply` | Google style is 2-space; enforce, don't hand-format |
 | `api-version: 26.2` unquoted | `api-version: '26.2'` | YAML parses it as float |
 
