@@ -104,7 +104,8 @@ public final class ExamplePlugin extends JavaPlugin {
 ## Verify the setup
 
 ```bash
-./gradlew build spotlessApply   # compiles + formats; dependency errors = wrong coordinates
+./gradlew build spotlessCheck   # compiles; FAILS on style violations; resolution errors = wrong coordinates
+./gradlew spotlessApply         # fixes violations in place (local use only, never in CI)
 ./gradlew runServer             # downloads Paper 26.2, launches test server with the plugin jar
 ```
 
