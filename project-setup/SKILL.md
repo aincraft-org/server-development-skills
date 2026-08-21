@@ -20,11 +20,11 @@ Canonical scaffold for Minecraft **26.2** plugin development. Core principle: **
 | Checkstyle tool (`checkstyle.toolVersion`) | **13.11.0** |
 | PMD tool (`pmd.toolVersion`) | **7.26.0** |
 | SpotBugs Gradle plugin (`com.github.spotbugs`) | **6.5.10** |
-| SpotBugs engine (`spotbugs.toolVersion`) | **4.9.3** |
+| SpotBugs engine (`spotbugs.toolVersion`) | **4.9.7** |
 
-Pins verified 2026-08-21 against official sources: Paper docs (project-setup, plugin-yml), Gradle Plugin Portal metadata, services.gradle.org, Maven Central, [Gradle Checkstyle plugin](https://docs.gradle.org/current/userguide/checkstyle_plugin.html), [Gradle PMD plugin](https://docs.gradle.org/current/userguide/pmd_plugin.html), [SpotBugs Gradle Plugin Portal](https://plugins.gradle.org/plugin/com.github.spotbugs), [SpotBugs plugin README](https://github.com/spotbugs/spotbugs-gradle-plugin), [Checkstyle](https://checkstyle.org/releasenotes.html), and [PMD](https://pmd.github.io/pmd/pmd_release_notes.html). `checkstyle` and `pmd` are Gradle built-in plugin IDs, so they have no independently pinned plugin versions; only their analyzer `toolVersion` values are pinned.
+Pins verified 2026-08-21 against official sources: Paper docs (project-setup, plugin-yml), Gradle Plugin Portal metadata, services.gradle.org, Maven Central, [Gradle Checkstyle plugin](https://docs.gradle.org/current/userguide/checkstyle_plugin.html), [Gradle PMD plugin](https://docs.gradle.org/current/userguide/pmd_plugin.html), [SpotBugs Gradle Plugin Portal](https://plugins.gradle.org/plugin/com.github.spotbugs), [SpotBugs plugin README](https://github.com/spotbugs/spotbugs-gradle-plugin), [SpotBugs 4.9.7 release notes](https://github.com/spotbugs/spotbugs/releases/tag/4.9.7), [Checkstyle](https://checkstyle.org/releasenotes.html), and [PMD](https://pmd.github.io/pmd/pmd_release_notes.html). `checkstyle` and `pmd` are Gradle built-in plugin IDs, so they have no independently pinned plugin versions; pin their analyzer `toolVersion` values. The SpotBugs engine pin is selected for Java 25 bytecode compatibility; verify it again when updating the JDK.
 
-Style: [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) is the only style guide. Enforce mechanically via Spotless — never hand-format.
+Style: [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) is the only style guide. Enforce mechanically via Spotless and Checkstyle — never hand-format.
 
 ## Scaffold
 
@@ -94,7 +94,7 @@ pmd {
 }
 
 spotbugs {
-    toolVersion.set("4.9.3")
+    toolVersion.set("4.9.7")
     ignoreFailures.set(false)
 }
 
@@ -147,12 +147,25 @@ api-version: '26.2'
 description: An example plugin
 ```
 
-`config/checkstyle/checkstyle.xml` (Gradle's Checkstyle plugin requires this path; start minimal and tighten rules later):
+`config/checkstyle/checkstyle.xml` (checked in at this path; this inline configuration enforces the documented Google-style essentials):
 
 ```xml
 <!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
 <module name="Checker">
-  <module name="TreeWalker"/>
+  <property name="charset" value="UTF-8"/>
+  <module name="LineLength">
+    <property name="max" value="100"/>
+  </module>
+  <module name="TreeWalker">
+    <module name="Indentation">
+      <property name="basicOffset" value="2"/>
+      <property name="braceAdjustment" value="0"/>
+      <property name="caseIndent" value="2"/>
+      <property name="throwsIndent" value="4"/>
+      <property name="lineWrappingIndentation" value="4"/>
+    </module>
+    <module name="AvoidStarImport"/>
+  </module>
 </module>
 ```
 
@@ -205,12 +218,12 @@ Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`.
 | `version = "1.0.0"` | CalVer from `GITHUB_RUN_NUMBER` | Use the `ci-release` convention; versions must be unique and sortable |
 | 4-space indent by hand | `./gradlew spotlessApply` | Google style is 2-space; enforce, don't hand-format |
 | `api-version: 26.2` unquoted | `api-version: '26.2'` | YAML parses it as float |
-| `./gradlew build` or `./gradlew build spotlessCheck` | `./gradlew clean check` | `check` runs Spotless plus every wired analyzer; `build` alone skips configured static analysis |
+| `./gradlew spotlessCheck` or another task that bypasses `check` | `./gradlew clean check` | Individual tasks or an unverified custom lifecycle may bypass configured analyzers; the canonical gate runs Spotless plus every wired analyzer. Gradle's standard `build` lifecycle also depends on `check`. |
 | `id("checkstyle") version "…"` | `checkstyle { toolVersion = "13.11.0" }` | Checkstyle and PMD are Gradle built-in plugins; pin analyzer tools, not plugin versions |
 | hardcoded `dependsOn("spotbugsTest")` | `dependsOn(tasks.withType<SpotBugsTask>())` | SpotBugs task names vary by source set; wire by task type so missing tasks are not referenced |
 | `ignoreFailures = true` / `isIgnoreFailures = true` | leave failures enabled (default or explicit `false`) | report-only analyzers do not gate CI |
 | analyzers configured but not attached to `check` | `tasks.named("check") { dependsOn(tasks.withType<…>()) }` | `./gradlew clean check` must fail when any analyzer fails |
-| Checkstyle plugin with no `config/checkstyle/checkstyle.xml` | add the minimal `config/checkstyle/checkstyle.xml` above | Gradle's Checkstyle plugin fails task configuration without that file |
+| Checkstyle plugin with no `config/checkstyle/checkstyle.xml` | add the Google-style `config/checkstyle/checkstyle.xml` above | Gradle's Checkstyle plugin fails task configuration without that file |
 
 Reproducibility option: after first resolve, pin the exact paper-api build (e.g. `26.2.build.112-stable`) instead of `+`.
 
