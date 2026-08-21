@@ -86,6 +86,9 @@ java {
 
 checkstyle {
     toolVersion = "13.11.0"
+    config = resources.text.fromUri(
+        "https://raw.githubusercontent.com/checkstyle/checkstyle/checkstyle-13.11.0/src/main/resources/google_checks.xml"
+    )
 }
 
 pmd {
@@ -147,27 +150,6 @@ api-version: '26.2'
 description: An example plugin
 ```
 
-`config/checkstyle/checkstyle.xml` (checked in at this path; this inline configuration enforces the documented Google-style essentials):
-
-```xml
-<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
-<module name="Checker">
-  <property name="charset" value="UTF-8"/>
-  <module name="LineLength">
-    <property name="max" value="100"/>
-  </module>
-  <module name="TreeWalker">
-    <module name="Indentation">
-      <property name="basicOffset" value="2"/>
-      <property name="braceAdjustment" value="0"/>
-      <property name="caseIndent" value="2"/>
-      <property name="throwsIndent" value="4"/>
-      <property name="lineWrappingIndentation" value="4"/>
-    </module>
-    <module name="AvoidStarImport"/>
-  </module>
-</module>
-```
 
 Main class — one class extends `JavaPlugin`; never name it `Main`; Google style = 2-space indent, 100-col limit, no wildcard imports:
 
@@ -218,12 +200,12 @@ Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`.
 | `version = "1.0.0"` | CalVer from `GITHUB_RUN_NUMBER` | Use the `ci-release` convention; versions must be unique and sortable |
 | 4-space indent by hand | `./gradlew spotlessApply` | Google style is 2-space; enforce, don't hand-format |
 | `api-version: 26.2` unquoted | `api-version: '26.2'` | YAML parses it as float |
-| `./gradlew spotlessCheck` or another task that bypasses `check` | `./gradlew clean check` | Individual tasks or an unverified custom lifecycle may bypass configured analyzers; the canonical gate runs Spotless plus every wired analyzer. Gradle's standard `build` lifecycle also depends on `check`. |
+| Local/custom Checkstyle rules drift from Google Checks | load the pinned `google_checks.xml` URL above | Spotless and Checkstyle must enforce the same documented Google Java Style contract |
 | `id("checkstyle") version "…"` | `checkstyle { toolVersion = "13.11.0" }` | Checkstyle and PMD are Gradle built-in plugins; pin analyzer tools, not plugin versions |
 | hardcoded `dependsOn("spotbugsTest")` | `dependsOn(tasks.withType<SpotBugsTask>())` | SpotBugs task names vary by source set; wire by task type so missing tasks are not referenced |
 | `ignoreFailures = true` / `isIgnoreFailures = true` | leave failures enabled (default or explicit `false`) | report-only analyzers do not gate CI |
 | analyzers configured but not attached to `check` | `tasks.named("check") { dependsOn(tasks.withType<…>()) }` | `./gradlew clean check` must fail when any analyzer fails |
-| Checkstyle plugin with no `config/checkstyle/checkstyle.xml` | add the Google-style `config/checkstyle/checkstyle.xml` above | Gradle's Checkstyle plugin fails task configuration without that file |
+| unpinned `main` URL for `google_checks.xml` | use the version-tagged `checkstyle-13.11.0` URL above | The rule set must change only with the pinned Checkstyle version |
 
 Reproducibility option: after first resolve, pin the exact paper-api build (e.g. `26.2.build.112-stable`) instead of `+`.
 
