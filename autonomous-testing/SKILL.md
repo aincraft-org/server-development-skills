@@ -1,5 +1,5 @@
 ---
-name: azalea-autonomous-bot
+name: autonomous-testing
 description: Use when building an autonomous Minecraft bot in Rust with Azalea, automating in-game tasks, distinguishing automatable tasks from those requiring approval, listening to protocol packets, or validating that an action was fully completed without a human logging in. Triggers include Azalea bots, task automation, packet listeners, completion verification, run-paper bot deployment, and remote bot connections.
 ---
 
