@@ -7,8 +7,6 @@ description: Use when creating a new Paper/Minecraft plugin project, writing or 
 
 Canonical scaffold for Minecraft **26.2** plugin development. Core principle: **use the pinned versions below — never from memory.** Plugin versioning changed in the 26.x line; stale-memory coordinates do not resolve.
 
-Pins verified 2026-08-21 against: Paper docs (project-setup, plugin-yml), Gradle Plugin Portal metadata, services.gradle.org, Maven Central.
-
 ## Pinned versions
 
 | Component | Version |
@@ -19,6 +17,12 @@ Pins verified 2026-08-21 against: Paper docs (project-setup, plugin-yml), Gradle
 | run-paper (`xyz.jpenilla.run-paper`) | **3.1.0** |
 | Spotless (`com.diffplug.spotless`) | **8.10.0** |
 | google-java-format | **1.36.1** |
+| Checkstyle tool (`checkstyle.toolVersion`) | **13.11.0** |
+| PMD tool (`pmd.toolVersion`) | **7.26.0** |
+| SpotBugs Gradle plugin (`com.github.spotbugs`) | **6.5.10** |
+| SpotBugs engine (`spotbugs.toolVersion`) | **4.9.3** |
+
+Pins verified 2026-08-21 against official sources: Paper docs (project-setup, plugin-yml), Gradle Plugin Portal metadata, services.gradle.org, Maven Central, [Gradle Checkstyle plugin](https://docs.gradle.org/current/userguide/checkstyle_plugin.html), [Gradle PMD plugin](https://docs.gradle.org/current/userguide/pmd_plugin.html), [SpotBugs Gradle Plugin Portal](https://plugins.gradle.org/plugin/com.github.spotbugs), [SpotBugs plugin README](https://github.com/spotbugs/spotbugs-gradle-plugin), [Checkstyle](https://checkstyle.org/releasenotes.html), and [PMD](https://pmd.github.io/pmd/pmd_release_notes.html). `checkstyle` and `pmd` are Gradle built-in plugin IDs, so they have no independently pinned plugin versions; only their analyzer `toolVersion` values are pinned.
 
 Style: [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) is the only style guide. Enforce mechanically via Spotless — never hand-format.
 
@@ -39,7 +43,10 @@ rootProject.name = "example-plugin"
 ```kotlin
 plugins {
     java
+    checkstyle
+    pmd
     id("com.diffplug.spotless") version "8.10.0"
+    id("com.github.spotbugs") version "6.5.10"
     id("xyz.jpenilla.run-paper") version "3.1.0"
 }
 
@@ -66,21 +73,62 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.+")
 }
+
 processResources {
     filesMatching("plugin.yml") {
         expand("version" to version)
     }
 }
 
-
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+}
+
+checkstyle {
+    toolVersion = "13.11.0"
+}
+
+pmd {
+    toolVersion = "7.26.0"
+    isIgnoreFailures = false
+}
+
+spotbugs {
+    toolVersion.set("4.9.3")
+    ignoreFailures.set(false)
 }
 
 spotless {
     java {
         googleJavaFormat("1.36.1")
     }
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.withType<Pmd>().configureEach {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+tasks.withType<com.github.spotbugs.snom.SpotBugsTask>().configureEach {
+    reports {
+        create("xml") { required.set(true) }
+        create("html") { required.set(true) }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.withType<Checkstyle>())
+    dependsOn(tasks.withType<Pmd>())
+    dependsOn(tasks.withType<com.github.spotbugs.snom.SpotBugsTask>())
 }
 
 tasks {
@@ -97,6 +145,15 @@ name: ExamplePlugin
 version: '${version}'
 api-version: '26.2'
 description: An example plugin
+```
+
+`config/checkstyle/checkstyle.xml` (Gradle's Checkstyle plugin requires this path; start minimal and tighten rules later):
+
+```xml
+<!DOCTYPE module PUBLIC "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN" "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<module name="Checker">
+  <module name="TreeWalker"/>
+</module>
 ```
 
 Main class — one class extends `JavaPlugin`; never name it `Main`; Google style = 2-space indent, 100-col limit, no wildcard imports:
@@ -131,8 +188,8 @@ Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`.
 ## Verify the setup
 
 ```bash
-./gradlew build spotlessCheck   # compiles; FAILS on style violations; resolution errors = wrong coordinates
-./gradlew spotlessApply         # fixes violations in place (local use only, never in CI)
+./gradlew clean check           # canonical quality gate: Spotless, Checkstyle, PMD, SpotBugs; FAILS on violations
+./gradlew spotlessApply         # fixes formatting in place (local use only, never in CI)
 ./gradlew runServer             # downloads Paper 26.2, launches test server with the plugin jar
 ```
 
@@ -148,6 +205,12 @@ Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`.
 | `version = "1.0.0"` | CalVer from `GITHUB_RUN_NUMBER` | Use the `ci-release` convention; versions must be unique and sortable |
 | 4-space indent by hand | `./gradlew spotlessApply` | Google style is 2-space; enforce, don't hand-format |
 | `api-version: 26.2` unquoted | `api-version: '26.2'` | YAML parses it as float |
+| `./gradlew build` or `./gradlew build spotlessCheck` | `./gradlew clean check` | `check` runs Spotless plus every wired analyzer; `build` alone skips configured static analysis |
+| `id("checkstyle") version "…"` | `checkstyle { toolVersion = "13.11.0" }` | Checkstyle and PMD are Gradle built-in plugins; pin analyzer tools, not plugin versions |
+| hardcoded `dependsOn("spotbugsTest")` | `dependsOn(tasks.withType<SpotBugsTask>())` | SpotBugs task names vary by source set; wire by task type so missing tasks are not referenced |
+| `ignoreFailures = true` / `isIgnoreFailures = true` | leave failures enabled (default or explicit `false`) | report-only analyzers do not gate CI |
+| analyzers configured but not attached to `check` | `tasks.named("check") { dependsOn(tasks.withType<…>()) }` | `./gradlew clean check` must fail when any analyzer fails |
+| Checkstyle plugin with no `config/checkstyle/checkstyle.xml` | add the minimal `config/checkstyle/checkstyle.xml` above | Gradle's Checkstyle plugin fails task configuration without that file |
 
 Reproducibility option: after first resolve, pin the exact paper-api build (e.g. `26.2.build.112-stable`) instead of `+`.
 
