@@ -30,7 +30,7 @@ dependencies {
 }
 ```
 
-Shade only HikariCP into the plugin jar — Paper does not bundle it. The Paper API and the SQLite driver are both `compileOnly` (the driver comes from the server at runtime). If you target Spigot/Bukkit or another fork, verify whether the driver is bundled there before assuming it is.
+Shade only HikariCP into the plugin jar — Paper does not bundle it. The SQLite driver needs no dependency at all if you use only `DriverManager` with a `jdbc:sqlite:` URL: the driver is discovered at runtime from Paper. Add `compileOnly("org.xerial:sqlite-jdbc:3.53.2.1")` only if your code imports `org.sqlite` types directly (e.g. `SQLiteConfig`); never `implementation` it, because the runtime driver comes from the server. If you target Spigot/Bukkit or another fork, verify whether the driver is bundled there before assuming it is.
 
 ## Connection pool
 
