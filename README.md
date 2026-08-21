@@ -11,6 +11,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 | [autonomous-testing](autonomous-testing/SKILL.md) | Autonomous Minecraft bots in Rust with Azalea: task classification, packet-based completion validation, security hardening, and testing |
 | [database-integration](database-integration/SKILL.md) | Paper plugin persistence: HikariCP pooling, async SQLite/MySQL access, schema migrations |
 | [performance-optimization](performance-optimization/SKILL.md) | Diagnose and fix Paper lag: Spark profiling, main-thread discipline, async chunk loading, listener hygiene |
+| [docs-maintenance](docs-maintenance/SKILL.md) | End-user Fumadocs documentation for every repo: content/docs contract with a reduced fallback for libraries and internal tools, floor-to-ceiling page ladder (idea → basics → everyday → advanced), design-token styling, and an executable gate covering content, navigation, links, and styling |
 
 ## Conventions
 
