@@ -108,6 +108,7 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew clean check
+      - run: ./gradlew assemble
       - name: Replace rolling nightly release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -130,6 +131,7 @@ Stable releases use the exact CalVer version built by the workflow. A release wo
   run: |
     VERSION="$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}"
     ./gradlew -PbuildVersion="$VERSION" clean check
+    ./gradlew -PbuildVersion="$VERSION" assemble
     echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
 - name: Publish release
@@ -182,6 +184,6 @@ For a public repository, manually dispatch `nightly.yml` once after adding it. C
 | `github/workflow/status/...` badge URL | `github/actions/workflow/status/.../<workflow>.yml` | Shields.io uses the workflow-file endpoint |
 | Badges in a private repository | No shields.io badges for private/internal projects | Public badge endpoints cannot reliably resolve private metadata |
 | Hardcoded versions in both Gradle and a descriptor | Expand the descriptor from Gradle `version` | Two version sources drift |
-| CI runs `./gradlew build` alone | Run `./gradlew clean check` | `build` does not run the full analyzer gate wired into `check` |
+| CI runs a task that bypasses `check` | Run `./gradlew clean check` | The canonical gate explicitly runs every analyzer wired into `check`; Gradle's standard `build` lifecycle also depends on `check` |
 | CI runs `./gradlew spotlessCheck` alone | Run `./gradlew clean check` | Formatting passes while Checkstyle, PMD, or SpotBugs violations remain |
-| Publishing a release before the gate succeeds | Run `./gradlew clean check` first; publish only after it succeeds | Artifacts built or published before `clean check` can ship static-analysis failures |
+| Publishing immediately after `clean check` | run `./gradlew assemble` after the gate, then publish | `check` validates code but does not create `build/libs/*.jar`; assembly must happen before release creation |
