@@ -17,7 +17,7 @@ A change is not a performance optimization until an A/B test with graphs either 
 
 1. Keep the old path as the control.
 2. Build the candidate alongside it, behind a toggle or config flag.
-3. Pick one primary metric and guardrails. Primary metric: MSPT for tick lag, TPS if the server is capped, latency if the change targets a request path. Guardrails: same-metric p95, flame graph, CPU, and memory must not regress.
+3. Pick one primary metric and guardrails. Primary metric: MSPT for tick lag, TPS when tick rate is the target metric, latency if the change targets a request path. Guardrails: same-metric p95, flame graph, CPU, and memory must not regress.
 4. Use a repeatable harness: same world, player count, tick, and seeded load script. Let both paths warm up, then measure.
 5. Run identical peak load through both for multiple trials. Empty servers and micro-benchmarks do not count.
 6. Capture distributions, not single numbers: primary metric, guardrails, and hot-path samples. Render comparison graphs on shared axes.
@@ -30,7 +30,7 @@ Record this for every test:
 - Workload / seed: exact script, player count, world, and seed.
 - Warmup: duration discarded before measuring.
 - Trials: count and order (e.g., interleaved old/new, randomized).
-- Primary metric: MSPT for tick lag, TPS if the server is capped, latency if the change targets a request path.
+- Primary metric: MSPT for tick lag, TPS when tick rate is the target metric, latency if the change targets a request path.
 - Distributions: old vs new median / p95 / p5 for the primary metric and guardrails.
 - Graphs: shared-axis comparison plots.
 - Verdict: `PASS`, `NO IMPROVEMENT`, or `REGRESSION`.
