@@ -173,3 +173,4 @@ Start the server, confirm the database file is created, insert a row through a c
 | Non-idempotent migrations | `IF NOT EXISTS` or version-guarded DDL | Partial migration corrupts state |
 | Closing the pool only on unload | Close in `onDisable` | Leaks connections across reloads |
 | Shading `sqlite-jdbc` into the plugin jar | Use Paper's bundled driver (`compileOnly` or nothing) | A duplicate driver conflicts with Paper's runtime driver |
+| Raw SQL literals in Java files | `.sql` resource files under `src/main/resources/sql/` | Separates queries from logic; easier to review and audit |
