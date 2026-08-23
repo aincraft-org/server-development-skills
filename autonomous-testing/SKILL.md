@@ -149,6 +149,16 @@ Test the bot against a local `run-paper` server before any remote deployment:
 
 Run the full suite before every remote deployment, and keep the integration harness in the same repository as the bot so it stays reproducible.
 
+## Load generation
+
+The bot doubles as a repeatable load harness for performance work. A fleet of N bots running a seeded script produces identical peak load across runs — exactly what the `performance-optimization` skill's A/B test requires.
+
+- Run N bots concurrently (one process per bot, or one process with N tasks) against the local `run-paper` server.
+- Drive every bot from the same seeded script: same world, same actions, same timing. Deterministic load is the point; randomizing the seed changes the workload between trials.
+- Keep the load script in the same repository as the bot so trials are reproducible.
+- Respect the authorization and rate-limit rules from the Security hardening section — a load fleet is still a set of clients hitting a server you own.
+- Confirm the fleet reaches the target player count and stays connected before starting a measurement window; a half-connected fleet measures a different workload.
+
 ## Verify
 
 ```bash
@@ -179,3 +189,4 @@ Manually dispatch a task and confirm the bot reports `completed` only after the 
 | Deploy to remote without local tests | Test against local run-paper first | Unverified bot behavior can damage a live server |
 | Skip negative tests | Assert `blocked`/`uncertain` for unverifiable tasks | The bot must never report `completed` on a guess |
 | No audit trail | Log every action with task ID and outcome | Without logs, misbehavior cannot be reconstructed |
+| Randomizing load between trials | One seeded script, same world and timing | A/B comparisons need identical peak load (see performance-optimization) |
