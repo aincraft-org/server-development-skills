@@ -13,7 +13,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 | [performance-optimization](performance-optimization/SKILL.md) | Diagnose and fix Paper lag: Spark profiling, main-thread discipline, async chunk loading, listener hygiene |
 | [docs-maintenance](docs-maintenance/SKILL.md) | End-user Fumadocs documentation for every repo: content/docs contract with a reduced fallback for libraries and internal tools, floor-to-ceiling page ladder (idea → basics → everyday → advanced), design-token styling, and an executable gate covering content, navigation, links, and styling |
 | [spec-driven-development](spec-driven-development/SKILL.md) | Turn non-trivial feature requests into reviewed artifacts before code: triage → specify (`FR-xxx` requirements with acceptance criteria) → clarify → plan → tasks with inline requirement traceability → gated implementation, using the repo's dated `docs/superpowers/specs|plans` convention |
-| [preferences-integration](preferences-integration/SKILL.md) | Hook a Paper plugin into the Preferences plugin: register typed preferences via `PreferencesService`, pick player vs global scope and a `PreferenceCodec`, read/write values programmatically, react to `PreferenceChangeEvent`, and verify persistence |
+| [preference-creation](preference-creation/SKILL.md) | Create and register a typed preference for the Preferences plugin: choose player vs global scope, pick a `PreferenceCodec`, set label/default, wire `onChange`, and verify it appears in `/preferences` |
 
 ## Conventions
 
