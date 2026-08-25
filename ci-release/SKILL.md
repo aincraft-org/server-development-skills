@@ -172,6 +172,126 @@ The workflow-status badge path uses the workflow filename (`ci.yml`), not the wo
 
 For a public repository, manually dispatch `nightly.yml` once after adding it. Confirm that the build succeeds, the release is marked pre-release, the `nightly` tag points at the new commit, and the README badges resolve.
 
+
+## GitHub Pages
+
+Deploy a static site from a repository with GitHub Pages. Pages pins verified 2026-08-25 against the official `actions/starter-workflows` Pages templates and GitHub Docs. Use these pins; the raw starter template and the Docs page can drift apart, so record the source and date when you change them.
+
+### Site types
+
+- **User or organization site**: repository named `<owner>.github.io`; served from `https://<owner>.github.io/` (root). One per account.
+- **Project site**: any other repository; served from `https://<owner>.github.io/<repository>/`. One per repository.
+
+The site type decides the base path. A project site needs the framework configured with the repository name as base (e.g. Vite `base: "/<repository>/"`), or asset URLs resolve against the domain root and 404.
+
+### Publishing source
+
+Enable Pages in **Settings → Pages → Build and deployment → Source**.
+
+- **Deploy from a branch**: pick a branch and folder (`/` root or `/docs`). Use this when no build control is needed. Commits pushed by a workflow using `GITHUB_TOKEN` do not trigger a branch-based Pages build.
+- **GitHub Actions**: use a workflow when a build step is needed. GitHub Pages links to the workflow run that most recently deployed the site.
+
+### Deploy workflow
+
+For a site that is already built, create `.github/workflows/deploy-pages.yml`:
+
+```yaml
+name: Deploy static content to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+```
+
+`cancel-in-progress: false` lets an in-progress production deployment finish and skips runs queued between it and the latest; do not set it to `true` for Pages.
+
+### Build and deploy
+
+When the site needs a build step, build into `dist/` in one job and deploy in a second job that `needs` the build:
+
+```yaml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+```
+
+The uploaded artifact must contain `index.html` at its top level (`dist/index.html`), or the site 404s.
+
+### Pull-request validation
+
+Build on `pull_request` without Pages permissions; deploy only on the default branch. A PR workflow must not receive `pages: write` or `id-token: write`.
+
+### Custom domain
+
+A `CNAME` file does **not** automatically add or remove a custom domain. Configure the domain in **Settings → Pages**, or via the Pages REST API. Verify the domain first to avoid takeover attacks.
+
+- Subdomain (`www.example.com`, `blog.example.com`): `CNAME` record to your Pages hostname.
+- Apex domain (`example.com`): `A`, `ALIAS`, or `ANAME` record.
+- Prefer `www`; GitHub automatically attempts redirects between `www` and apex when both are configured.
+- Enable **Enforce HTTPS** when available.
+- If the site is disabled while a custom domain is configured, the domain is at risk of takeover — update or remove the DNS records.
+
+### Privacy
+
+Pages sites are publicly available on the internet even when the repository is private, **if your plan or organization allows it**. On Enterprise plans a site can be published privately. Never deploy secrets, keys, or unpublished data to the artifact.
+
+### Fumadocs sites
+
+For a Fumadocs/Next docs site, follow the `docs-maintenance` skill for content structure, the hub app, and the build gate. This section provides the Pages deploy workflow that ships the hub's build output; the two skills compose: `docs-maintenance` owns the site, `ci-release` owns the deployment.
+
+
 ## Common mistakes
 
 | Wrong | Right | Why |
@@ -187,3 +307,8 @@ For a public repository, manually dispatch `nightly.yml` once after adding it. C
 | CI runs a task that bypasses `check` | Run `./gradlew clean check` | The canonical gate explicitly runs every analyzer wired into `check`; Gradle's standard `build` lifecycle also depends on `check` |
 | CI runs `./gradlew spotlessCheck` alone | Run `./gradlew clean check` | Formatting passes while Checkstyle, PMD, or SpotBugs violations remain |
 | Publishing immediately after `clean check` | run `./gradlew assemble` after the gate, then publish | `check` validates code but does not create `build/libs/*.jar`; assembly must happen before release creation |
+| `cancel-in-progress: true` on a Pages workflow | `cancel-in-progress: false` | Cancelling an in-progress production deployment can leave the site half-published |
+| Uploading a folder without `index.html` at its top level | Ensure `dist/index.html` exists before upload | The site 404s when the artifact root has no entry file |
+| Relying on a `CNAME` file to set a custom domain | Configure the domain in Settings → Pages or via the API | A `CNAME` file alone does not add or remove a custom domain |
+| Giving a pull-request workflow `pages: write` | Build on PRs without Pages permissions; deploy only on the default branch | PRs can deploy unreviewed content |
+| Deploying secrets into a Pages artifact | Keep keys and credentials out of the artifact | Pages sites are publicly reachable even for private repos when the plan allows it |
