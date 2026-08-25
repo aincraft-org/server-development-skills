@@ -1,6 +1,6 @@
 ---
 name: ci-release
-description: Use when setting up or editing GitHub Actions CI, choosing project versioning, configuring CalVer releases or nightly builds, publishing release artifacts, or adding README shields.io badges. Triggers include CI workflow files, GitHub Actions schedules, rolling nightly releases, CalVer, release tags, build-status badges, license badges, and platform badges.
+description: Use when setting up or editing GitHub Actions CI, deploying a static site or docs to GitHub Pages, choosing project versioning, configuring CalVer releases or nightly builds, publishing release artifacts, or adding README shields.io badges. Triggers include CI workflow files, GitHub Actions schedules, rolling nightly releases, CalVer, release tags, build-status badges, license badges, platform badges, GitHub Pages, deploy-pages, and configure-pages.
 ---
 
 # CI and Release Engineering
@@ -289,7 +289,7 @@ Pages sites are publicly available on the internet even when the repository is p
 
 ### Fumadocs sites
 
-For a Fumadocs/Next docs site, follow the `docs-maintenance` skill for content structure, the hub app, and the build gate. This section provides the Pages deploy workflow that ships the hub's build output; the two skills compose: `docs-maintenance` owns the site, `ci-release` owns the deployment.
+For a Fumadocs/Next docs site, follow the [docs-maintenance](../docs-maintenance/SKILL.md) skill for content structure, the hub app, and the build gate. This section provides the Pages deploy workflow that ships the hub's build output; the two skills compose: `docs-maintenance` owns the site, `ci-release` owns the deployment.
 
 
 ## Common mistakes
