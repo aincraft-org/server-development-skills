@@ -33,25 +33,59 @@ if [ -d "$BASE/runtime/auto" ]; then
 fi
 AUTO_NAMES="$(printf '%s\n' $AUTO_NAMES | sort -u | tr '\n' ' ')"
 
-# Resolve registry: explicit BACKENDS wins; else persisted file; else default
-# dev — UNLESS auto-discovered dirs exist, which replace the default.
+# Resolve registry: explicit BACKENDS wins; else AUTO dirs REPLACE the
+# persisted file (drop-in mode owns the registry); else persisted file;
+# else default dev.
 if [ -n "${BACKENDS:-}" ]; then
   printf '%s\n' $BACKENDS > "$BASE/runtime/backends.txt"
+elif [ -n "$AUTO_NAMES" ]; then
+  BACKENDS=""
+elif [ -f "$BASE/runtime/backends.txt" ]; then
+  BACKENDS="$(cat "$BASE/runtime/backends.txt")"
 else
-  if [ -f "$BASE/runtime/backends.txt" ]; then
-    BACKENDS="$(cat "$BASE/runtime/backends.txt")"
-  elif [ -z "$AUTO_NAMES" ]; then
-    printf '%s\n' dev > "$BASE/runtime/backends.txt"
-    BACKENDS=dev
-  else
-    BACKENDS=""
-  fi
+  printf '%s\n' dev > "$BASE/runtime/backends.txt"
+  BACKENDS=dev
 fi
 
 REGISTRY="$(printf '%s\n' $BACKENDS $AUTO_NAMES ${EXTERNAL_BACKENDS:-} | sort -u)"
 printf '%s\n' $REGISTRY > "$BASE/runtime/backends.txt"
 
 echo "== auto-discovered backends: ${AUTO_NAMES:-none}"
+
+# --- free-port pass ----------------------------------------------------------
+PROXY_PORT="${PROXY_PORT:-25565}"
+port_free() { # <port> → 0 if free, 1 if in use
+  ! (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
+}
+if ! port_free "$PROXY_PORT"; then
+  echo "!! dev-network: proxy port $PROXY_PORT already in use" >&2; exit 1
+fi
+if ! port_free 30066; then
+  echo "!! dev-network: lobby port 30066 already in use" >&2; exit 1
+fi
+IDX=0
+for name in $REGISTRY; do
+  KEY="PORT_${name^^}"
+  if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
+    # External servers are already listening: keep their port mapping (override
+    # or default) — never auto-reallocate a live server's port.
+    if [ -n "${!KEY:-}" ]; then
+      echo "   $name (external) -> port ${!KEY} (explicit)"
+    else
+      P=$((30067 + IDX)); IDX=$((IDX + 1))
+      export "$KEY=$P"
+      echo "   $name (external, already running) -> port $P"
+    fi
+  elif [ -n "${!KEY:-}" ]; then
+    port_free "${!KEY}" || { echo "!! dev-network: $name port ${!KEY} in use" >&2; exit 1; }
+    echo "   $name -> port ${!KEY} (explicit)"
+  else
+    P=$((30067 + IDX)); IDX=$((IDX + 1))
+    while ! port_free "$P"; do P=$((P + 1)); done
+    export "$KEY=$P"
+    echo "   $name -> port $P (auto)"
+  fi
+done
 
 echo "== dev-network: launching components (logs in $BASE/logs) =="
 echo "== backends: $BACKENDS"
@@ -75,15 +109,17 @@ trap teardown INT TERM EXIT
 
 cd "$BASE"
 spawn "$BIN_DIR/boot-lobby.sh"
-spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-proxy.sh"
+spawn env BACKENDS="$REGISTRY" PROXY_PORT="$PROXY_PORT" "$BIN_DIR/boot-proxy.sh"
 for name in $REGISTRY; do
+  KEY="PORT_${name^^}"
+  PORTA="PORT_${name^^}=${!KEY:-}"
   if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
-    spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-external.sh" "$name"
+    spawn env BACKENDS="$REGISTRY" "$PORTA" "$BIN_DIR/boot-external.sh" "$name"
   elif [ -d "$BASE/runtime/auto/$name" ]; then
-    spawn env BACKENDS="$REGISTRY" SERVER_DIR="$BASE/runtime/auto/$name" \
+    spawn env BACKENDS="$REGISTRY" "$PORTA" SERVER_DIR="$BASE/runtime/auto/$name" \
       "$BIN_DIR/boot-backend.sh" "$name"
   else
-    spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-backend.sh" "$name"
+    spawn env BACKENDS="$REGISTRY" "$PORTA" "$BIN_DIR/boot-backend.sh" "$name"
   fi
 done
 
@@ -108,11 +144,11 @@ done
 
 echo
 echo "== network is up =="
-echo "    Connect Minecraft to  localhost:25565"
+echo "    Connect Minecraft to  localhost:$PROXY_PORT"
 echo "    Initial server:       lobby"
 echo "    Switch with:          /server <name>"
-for name in $BACKENDS; do
-  echo "                          /server $name  (backend $name)"
+for name in $REGISTRY; do
+  echo "                          /server $name"
 done
 echo "    Console admin:        log in as ${DEV_USERS:-dev} (opped on every server)"
 echo "    Component logs:       $BASE/logs/{proxy,lobby,<name>}.log"
