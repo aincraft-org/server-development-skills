@@ -14,6 +14,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 | [ui-design](ui-design/SKILL.md) | Player-facing UI: Adventure/MiniMessage text, WCAG AA contrast, typography, inventory GUI layout |
 | [docs-maintenance](docs-maintenance/SKILL.md) | End-user Fumadocs documentation for every repo: content/docs contract with a reduced fallback for libraries and internal tools, floor-to-ceiling page ladder (idea → basics → everyday → advanced), design-token styling, and an executable gate covering content, navigation, links, and styling |
 | [spec-driven-development](spec-driven-development/SKILL.md) | Turn non-trivial feature requests into reviewed artifacts before code: triage → specify (`FR-xxx` requirements with acceptance criteria) → clarify → plan → tasks with inline requirement traceability → gated implementation, using the repo's dated `docs/superpowers/specs|plans` convention |
+| [velocity-dev-network](velocity-dev-network/SKILL.md) | Local Velocity proxy dev network: one proxy + basic lobby + N isolated Paper backends, multiplexed via the built-in `/server` command on a single address (`localhost:25565`), with per-backend plugin install and restart scripts |
 
 ## Conventions
 
