@@ -181,14 +181,54 @@ Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`.
 
 ## README
 
-Every scaffolded plugin repo carries a README committed with the scaffold. Like the docs site, it is a consumer surface: describe what a player or operator does, never packages, handlers, or config keys (see `docs-maintenance`).
+Every scaffolded plugin repo carries a README committed with the scaffold. Like the docs site, it is a consumer surface: describe what a player or operator does, never packages, handlers, or config keys (see `docs-maintenance`). Extract every command, permission, and feature from the actual plugin source — never invent behavior the plugin does not have.
 
-- **Name and one-line description** — the sentence from `plugin.yml`'s `description`.
-- **Badges — public repos only.** CI/build, license, release, and platform badges per `ci-release` "README badges"; omit them entirely for private or internal repositories.
-- **Quickstart** — `./gradlew build`, copy `build/libs/*.jar` into `plugins/`, restart. A sentence or two, not a build tutorial.
-- **Commands and permissions** — the scaffold-level cheat sheet: each command with who can run it ("operators only", never a raw permission node) and what it does. A table after a sentence, never a fragment wall.
+Use this template, filling each section from the scaffold and the plugin source:
+
+```markdown
+# <Plugin Name>
+
+<one-line description — the sentence from plugin.yml's description>
+
+## Requirements
+
+- Paper <pinned version> (api-version from plugin.yml)
+
+## Install
+
+1. `./gradlew build`
+2. Copy `build/libs/<plugin-name>-<version>.jar` into `plugins/`
+3. Restart the server
+
+## Commands        # from plugin.yml commands — who can run it, what it does
+
+| Command | Who | What it does |
+|---|---|---|
+| `/home` | operators only | teleport to your home |
+
+## Permissions     # from plugin.yml permissions — what each node grants
+
+| Permission | Grants |
+|---|---|
+| `example.home` | access to `/home` |
+
+## Configuration   # from config.yml defaults — describe behaviour, not keys
+
+- <setting> — what it changes, in plain words
+
+## Troubleshooting
+
+- <symptom> — <cause and fix, from observed behaviour>
+
+## License
+
+See [LICENSE](LICENSE).
+```
+
+Notes:
+
+- **Badges — public repos only.** Add shields.io CI/build, license, release, and platform badges per `ci-release` "README badges"; omit them entirely for private or internal repositories. Do not duplicate the badge policy here.
 - **Docs link** — when the repo has a Fumadocs site (see `docs-maintenance`), the README is the front door and links to it; the docs site holds the content.
-- **License** — point at `LICENSE`.
 
 Verify the README matches `plugin.yml` before committing: name, description, version, and API version must not drift from the scaffold.
 
