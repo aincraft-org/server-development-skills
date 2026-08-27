@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, or google-java-format versions.
+description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, or the project README, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, writing the scaffold README, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, or google-java-format versions.
 ---
 
 # Project Setup (Paper 26.2 Plugin)
@@ -177,8 +177,20 @@ For Java projects expected to grow beyond a single module, prefer a `[plugin]-co
 ├── [plugin]-api/      # public plugin interfaces and contracts
 └── [plugin]-paper/    # Paper implementation, commands, listeners, plugin.yml
 ```
-
 Dependency direction: `[plugin]-paper` → `[plugin]-api` → `[plugin]-common`. The Paper module depends only on the API boundary; platform code stays behind the API.
+
+## README
+
+Every scaffolded plugin repo carries a README committed with the scaffold. Like the docs site, it is a consumer surface: describe what a player or operator does, never packages, handlers, or config keys (see `docs-maintenance`).
+
+- **Name and one-line description** — the sentence from `plugin.yml`'s `description`.
+- **Badges — public repos only.** CI/build, license, release, and platform badges per `ci-release` "README badges"; omit them entirely for private or internal repositories.
+- **Quickstart** — `./gradlew build`, copy `build/libs/*.jar` into `plugins/`, restart. A sentence or two, not a build tutorial.
+- **Commands and permissions** — the scaffold-level cheat sheet: each command with who can run it ("operators only", never a raw permission node) and what it does. A table after a sentence, never a fragment wall.
+- **Docs link** — when the repo has a Fumadocs site (see `docs-maintenance`), the README is the front door and links to it; the docs site holds the content.
+- **License** — point at `LICENSE`.
+
+Verify the README matches `plugin.yml` before committing: name, description, version, and API version must not drift from the scaffold.
 
 ## Verify the setup
 
