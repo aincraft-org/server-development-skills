@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Boots a basic lobby Paper server on port 30066 behind the proxy.
 # No plugins; just a stable lobby the user returns to.
+# Developer accounts (DEV_USERS, default "dev") are opped via ops.json.
 #
 # Pins verified 2026-08-27 against https://fill.papermc.io/v3/projects/paper
 # (Paper 26.2, build 119, Java 25 minimum) and the official docs at
@@ -12,6 +13,7 @@ VERSION="26.2"
 BUILD="119"
 SHA256="a8c9140c3075bd7c04973e9cdc491b21bfe6bad472b674ef932a4ae0fec19629"
 BASE="${BASE:-$PWD/development-network}"
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_PORT="${SERVER_PORT:-30066}"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 
@@ -56,6 +58,9 @@ cat > "$WORKDIR/spigot.yml" <<EOF
 settings:
   bungeecord: false
 EOF
+
+# Developer accounts get operator level 4 (offline UUIDs, DEV_USERS default "dev").
+"$BIN_DIR/write-ops.sh" "$WORKDIR"
 
 # --- run --------------------------------------------------------------------
 cd "$WORKDIR"

@@ -1,6 +1,6 @@
 ---
 name: development-network
-description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, /server switching, BACKENDS registration, velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
+description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, /server switching, BACKENDS registration, DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
 ---
 
 # Velocity Dev Network
@@ -30,6 +30,7 @@ development-network/
     ├── boot-proxy.sh           # download+verify Velocity, generate velocity.toml
     ├── boot-lobby.sh           # download+verify Paper, configure, run lobby (30066)
     ├── boot-backend.sh         # download+verify Paper, configure, run ONE backend
+    ├── write-ops.sh            # write ops.json (level 4) for DEV_USERS (offline UUIDs)
     └── dev-network-status.sh   # status-ping all endpoints; proves reachability
 ```
 
@@ -75,7 +76,22 @@ PLUGIN_VANILLA=/path/to/other/plugin.jar \
 BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 ```
 
-Backends without a plugin run vanilla Paper — multiplexing still proves the harness works.
+## Permissions & console admin
+
+**Backend servers opp the developer automatically.** Every boot writes `ops.json` (operator level 4) for the accounts in `DEV_USERS` (space-separated, default `dev`):
+
+```bash
+DEV_USERS='dev jlo' BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
+```
+
+Each backend is OFFLINE mode, so ops use the **name-derived offline UUID** — the exact `java.util.UUID.nameUUIDFromBytes("OfflinePlayer:"+name)` algorithm — computed by `bin/write-ops.sh` (verified byte-for-byte against Java). Log into any backend as `dev` (or your name) and you are opped there.
+
+**The proxy has NO ops.** Velocity is permission-node based, and the harness ships no proxy permission plugin, so proxy commands are governed by Velocity's defaults:
+
+- gated by default: `/velocity plugins|info|reload|dump|heap` → `velocity.command.*`, `/glist` → `velocity.command.glist`, `/send` → `velocity.command.send` — all granted to **nobody** in the harness;
+- open to everyone: `/server <name>` → `velocity.command.server` (default-all).
+
+To open proxy admin commands, install a proxy permissions plugin (e.g. LuckPerms on the proxy — note its command is `/lpv` there, and `velocity.command.*` nodes are what matter) or add one via a plugin. Backend `*`/op does not carry to the proxy; the two permission systems are fully separate.
 
 ## Iterating: rebuild → restart ONE backend
 
@@ -134,6 +150,9 @@ Stops proxy, lobby, and every registered backend by pidfile (Java PID, so Paper'
 | Leaving stale CalVer plugin jars in `plugins/` | `restart-backend.sh` clears `*.jar` before installing | Old versions with a newer CalVer stay loaded; both get enabled at boot |
 | Naming a backend with spaces/special chars | `[A-Za-z0-9_-]+` only | Names become server names in velocity.toml and runtime dirs |
 | Expecting the status probe to prove routing | Read it as reachability; prove routing with a real login + `/server` | The proxy answers pings itself (`ping-passthrough = DISABLED`) |
+| Logging in without ops and expecting console admin | Set `DEV_USERS` to your account before boot | Ops come from `ops.json` (offline UUIDs) written per boot |
+| Computing offline UUIDs with `uuid3(nil, ...)` | Use `java.util.UUID.nameUUIDFromBytes("OfflinePlayer:"+name)` (raw md5) | The nil-namespace prefix yields a wrong UUID that never matches the player |
+| Expecting `*`/op on a backend to grant proxy commands | Install a proxy permissions plugin (e.g. LuckPerms, `/lpv`) and grant `velocity.command.*` | Backend and proxy permission systems are fully separate |
 | Using port 25565 on a backend | Backends bind 30067+; only the proxy owns 25565 | Only the proxy is reachable by the client |
 | Expecting `/server` to work on a backend directly | `/server` is a Velocity built-in; it only exists on the proxy | Backends have no proxy command routing |
 | Modifying a running server's config and expecting it to apply | Restart that component (or full `stop-dev-network.sh` + boot) | Velocity/Paper read configs at startup only |

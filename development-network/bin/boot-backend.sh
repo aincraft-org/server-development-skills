@@ -6,6 +6,7 @@
 #   Port:   $PORT_<NAME> (default: 30067 + index in the sorted backend list).
 #   Plugin: $PLUGIN_<NAME> = path to a built jar to install (stale CalVer jars
 #           are cleared first). Falls back to $PLUGIN_JAR for single-backend use.
+#   Ops:    developer accounts (DEV_USERS, default "dev") get operator level 4.
 #   Ready:  writes $BASE/runtime/<NAME>.ready; pidfile $BASE/runtime/<NAME>.pid
 #
 # Pins verified 2026-08-27 against https://fill.papermc.io/v3/projects/paper
@@ -21,6 +22,7 @@ VERSION="26.2"
 BUILD="119"
 SHA256="a8c9140c3075bd7c04973e9cdc491b21bfe6bad472b674ef932a4ae0fec19629"
 BASE="${BASE:-$PWD/development-network}"
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 
 [ -d "$BASE" ] || { echo "base dir missing: $BASE" >&2; exit 1; }
@@ -91,6 +93,9 @@ cat > "$WORKDIR/spigot.yml" <<EOF
 settings:
   bungeecord: false
 EOF
+
+# Developer accounts get operator level 4 (offline UUIDs, DEV_USERS default "dev").
+"$BIN_DIR/write-ops.sh" "$WORKDIR"
 
 # --- run --------------------------------------------------------------------
 cd "$WORKDIR"

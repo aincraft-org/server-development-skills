@@ -80,6 +80,7 @@ echo "    Switch with:          /server <name>"
 for name in $BACKENDS; do
   echo "                          /server $name  (backend $name)"
 done
+echo "    Console admin:        log in as ${DEV_USERS:-dev} (opped on every server)"
 echo "    Component logs:       $BASE/logs/{proxy,lobby,<name>}.log"
 echo "    Rebuild + restart a backend:"
 echo "        ./bin/restart-backend.sh <name> /path/to/plugin.jar"
