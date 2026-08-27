@@ -1,6 +1,6 @@
 ---
 name: development-network
-description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, the /server switch command, BACKENDS registration, DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
+description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, the /server switch command, BACKENDS registration, connecting an external runServer to the network (EXTERNAL_BACKENDS), DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
 ---
 
 # Velocity Dev Network
@@ -30,6 +30,8 @@ development-network/
     ├── boot-proxy.sh           # download+verify Velocity, generate velocity.toml
     ├── boot-lobby.sh           # download+verify Paper, configure, run lobby (30066)
     ├── boot-backend.sh         # download+verify Paper, configure, run ONE backend
+    ├── boot-external.sh        # register+configure an ALREADY-RUNNING server (never starts it)
+    ├── fetch-jar.sh            # atomic pinned download (tmp + sha256 + rename, flocked)
     ├── write-ops.sh            # write ops.json (level 4) for DEV_USERS (offline UUIDs)
     └── dev-network-status.sh   # status-ping all endpoints; proves reachability
 ```
@@ -102,7 +104,33 @@ To open proxy admin commands, install a proxy permissions plugin (e.g. LuckPerms
 ./development-network/bin/restart-backend.sh demo /path/to/demo/plugin.jar
 ```
 
-`restart-backend.sh` SIGTERMs that backend (world save), clears stale CalVer jars from its `plugins/`, installs the new jar, and boots it. Players on the restarted backend are kicked back to the lobby by the proxy.
+## Bring your own server (join an external server)
+
+Don't want the harness to run your server? Join an **already-running** Paper server (e.g. your plugin's own `./gradlew runServer` launched in the plugin project) to the network as a backend. **The harness never modifies the external server's files and never starts/stops it** — it only registers it and verifies the forwarding config.
+
+One-time external-server setup (in the plugin project's server dir):
+
+```yaml
+# config/paper-global.yml (keep the rest of the file; Paper merges)
+proxies:
+  velocity:
+    enabled: true
+    online-mode: false
+    secret: "dev-local-forwarding-secret-change-me"
+```
+
+plus `online-mode=false` in `server.properties`, then **restart the external server once**. After that, join it:
+
+```bash
+EXTERNAL_DIR_NAMEPLUG=/path/to/plugin-project/run \
+BACKENDS='dev' EXTERNAL_BACKENDS='nameplug' \
+./development-network/bin/dev-network.sh
+```
+
+- `EXTERNAL_BACKENDS` names are merged into the registry, so the proxy's `[servers]` includes them (and port math covers them — `PORT_<NAME>` overrides still work).
+- `boot-external.sh` verifies the forwarding config is present (prints the exact block + path if missing) and confirms the server is reachable; it writes only the `runtime/<name>.ready` marker.
+- External servers are **not** auto-opped (`write-ops.sh` only runs for managed backends); op yourself with `/op <name>` or your normal plugin flow.
+- The stop script never stops external servers — no pidfile means it leaves them alone; you stop `runServer` in the plugin project as usual.
 
 ## Verifying reachability
 
@@ -128,6 +156,7 @@ backend:30068 (30068)  reachable  motd='dev-network vanilla' version=Paper 26.2
 - `forwarding.secret` is generated per boot with a fixed dev secret string — a dev secret, never a production credential.
 - The `try` list for login/kick failover is `["lobby", <backends…>]` — lobby first.
 - Configs are generated on every boot; worlds persist in the backend's runtime dir.
+- Jar downloads are atomic and race-safe: temp file in the same dir, SHA-256 verify, `mv` into place, per-jar `flock` — a fresh multi-backend boot cannot corrupt a jar that another booter is still writing.
 - Teardown: `Ctrl-C` on the launcher SIGINTs all booters (their EXIT traps stop java), or `stop-dev-network.sh` SIGTERMs each Java PID by pidfile — so Paper's world-save hooks always run. Never `pkill` patterns.
 
 ## Stopping

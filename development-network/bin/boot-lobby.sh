@@ -21,13 +21,9 @@ TARGET_SERVER="${TARGET_SERVER:-localhost}"
 mkdir -p "$BASE/binaries" "$BASE/runtime"
 
 JAR="$BASE/binaries/paper-$VERSION-$BUILD.jar"
-if [ ! -f "$JAR" ]; then
-  echo "   lobby: downloading paper-$VERSION-$BUILD.jar"
-  curl -fsSL \
-    "https://fill-data.papermc.io/v1/objects/$SHA256/paper-$VERSION-$BUILD.jar" \
-    -o "$JAR"
-  echo "$SHA256  $JAR" | sha256sum -c - >/dev/null
-fi
+"$BIN_DIR/fetch-jar.sh" \
+  "https://fill-data.papermc.io/v1/objects/$SHA256/paper-$VERSION-$BUILD.jar" \
+  "$SHA256" "$JAR"
 
 WORKDIR="$BASE/runtime/lobby"
 mkdir -p "$WORKDIR"

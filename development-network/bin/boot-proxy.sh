@@ -15,6 +15,7 @@ VERSION="4.1.1"
 BUILD="24"
 SHA256="846411d2d0560fed0f23496ffb89681be528d2c0650ecdcf21724d2d7bd9c1ee"
 BASE="${BASE:-$PWD/development-network}"
+BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROXY_PORT="${PROXY_PORT:-25565}"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 
@@ -50,13 +51,9 @@ for n in $BACKENDS_SORTED; do
 done
 
 JAR="$BASE/binaries/velocity-$VERSION-$BUILD.jar"
-if [ ! -f "$JAR" ]; then
-  echo "   proxy: downloading velocity-$VERSION-$BUILD.jar"
-  curl -fsSL \
-    "https://fill-data.papermc.io/v1/objects/$SHA256/velocity-$VERSION-$BUILD.jar" \
-    -o "$JAR"
-  echo "$SHA256  $JAR" | sha256sum -c - >/dev/null
-fi
+"$BIN_DIR/fetch-jar.sh" \
+  "https://fill-data.papermc.io/v1/objects/$SHA256/velocity-$VERSION-$BUILD.jar" \
+  "$SHA256" "$JAR"
 
 # --- write velocity.toml ----------------------------------------------------
 # Modern forwarding needs: offline mode + a shared secret, mirrored in

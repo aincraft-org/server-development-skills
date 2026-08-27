@@ -3,7 +3,8 @@
 # Per-process SIGTERM (escalate to SIGKILL after 30s) so Paper's world-save
 # hooks run. Uses pidfiles only, never pkill patterns.
 #
-# Stops every backend named in the registry, plus proxy + lobby.
+# Stops every backend named in the registry (EXTERNAL_BACKENDS are never
+# stopped — no pidfile; they belong to the developer), plus proxy + lobby.
 
 set -eo pipefail
 

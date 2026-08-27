@@ -3,10 +3,13 @@
 # The user connects to ONE address (localhost:25565) and multiplexes with
 # the built-in /server command.
 #
-# Backends:  BACKENDS="name1 name2 ..." (or $BASE/runtime/backends.txt persists
-#            the registry). Each backend is a fully isolated Paper server
-#            (runtime/<name>/), one plugin per backend via PLUGIN_<NAME>.
-# Runtime:   $BASE (default ./development-network).
+# Backends:   BACKENDS="name1 name2 ..." (or backends.txt persists the registry).
+#             Each managed backend is a fully isolated Paper server
+#             (runtime/<name>/), one plugin per backend via PLUGIN_<NAME>.
+# External:   EXTERNAL_BACKENDS="name ..." joins ALREADY-RUNNING servers
+#             (e.g. a plugin's own runServer) without managing their lifecycle;
+#             boot-external.sh configures + registers them.
+# Runtime:    $BASE (default ./development-network).
 # Teardown:  Ctrl-C here (SIGINT to all booters; their EXIT traps stop java),
 #            or ./bin/stop-dev-network.sh.
 
@@ -18,6 +21,8 @@ BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p "$BASE/logs" "$BASE/runtime"
 
 # Resolve registry: explicit BACKENDS wins; else persisted file; else default.
+# EXTERNAL_BACKENDS are ALSO part of the registry: they get [servers] entries
+# and ports, but boot-external.sh manages them (no pidfile/lifecycle).
 if [ -n "${BACKENDS:-}" ]; then
   printf '%s\n' $BACKENDS > "$BASE/runtime/backends.txt"
 else
@@ -26,9 +31,12 @@ else
   fi
   BACKENDS="$(cat "$BASE/runtime/backends.txt")"
 fi
+REGISTRY="$(printf '%s\n' $BACKENDS ${EXTERNAL_BACKENDS:-} | sort -u)"
+printf '%s\n' $REGISTRY > "$BASE/runtime/backends.txt"
 
 echo "== dev-network: launching components (logs in $BASE/logs) =="
 echo "== backends: $BACKENDS"
+echo "== external backends: ${EXTERNAL_BACKENDS:-none}"
 
 PIDS=()
 spawn() {
@@ -48,13 +56,17 @@ trap teardown INT TERM EXIT
 
 cd "$BASE"
 spawn "$BIN_DIR/boot-lobby.sh"
-spawn "$BIN_DIR/boot-proxy.sh"
-for name in $(printf '%s\n' $BACKENDS | sort -u); do
-  spawn env BACKENDS="$BACKENDS" "$BIN_DIR/boot-backend.sh" "$name"
+spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-proxy.sh"
+for name in $REGISTRY; do
+  if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
+    spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-external.sh" "$name"
+  else
+    spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-backend.sh" "$name"
+  fi
 done
 
 echo "== waiting for components to become ready =="
-for c in proxy lobby $BACKENDS; do
+for c in proxy lobby $BACKENDS ${EXTERNAL_BACKENDS:-}; do
   ok=0
   for _ in $(seq 1 240); do
     if [ -f "$BASE/runtime/$c.ready" ]; then

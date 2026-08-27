@@ -29,13 +29,9 @@ TARGET_SERVER="${TARGET_SERVER:-localhost}"
 mkdir -p "$BASE/binaries" "$BASE/runtime"
 
 JAR="$BASE/binaries/paper-$VERSION-$BUILD.jar"
-if [ ! -f "$JAR" ]; then
-  echo "   $NAME: downloading paper-$VERSION-$BUILD.jar"
-  curl -fsSL \
-    "https://fill-data.papermc.io/v1/objects/$SHA256/paper-$VERSION-$BUILD.jar" \
-    -o "$JAR"
-  echo "$SHA256  $JAR" | sha256sum -c - >/dev/null
-fi
+"$BIN_DIR/fetch-jar.sh" \
+  "https://fill-data.papermc.io/v1/objects/$SHA256/paper-$VERSION-$BUILD.jar" \
+  "$SHA256" "$JAR"
 
 # --- port from the sorted registry (same math as boot-proxy.sh) -------------
 REGISTRY="${BACKENDS:-$(cat "$BASE/runtime/backends.txt" 2>/dev/null || echo dev)}"
