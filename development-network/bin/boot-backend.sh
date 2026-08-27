@@ -50,8 +50,15 @@ else
   done
 fi
 
-WORKDIR="$BASE/runtime/$NAME"
+# Server dir: explicit SERVER_DIR (auto-discovered folder) wins; default runtime/<NAME>.
+WORKDIR="${SERVER_DIR:-$BASE/runtime/$NAME}"
 mkdir -p "$WORKDIR/plugins"
+
+# Auto-discovered servers live in runtime/auto/<NAME>: expose their dir to the
+# rest of the harness by recording it on the ready marker.
+if [ "$WORKDIR" != "$BASE/runtime/$NAME" ]; then
+  echo "$WORKDIR" > "$BASE/runtime/$NAME.auto-dir"
+fi
 
 # Plugin install: $PLUGIN_<NAME> wins, then $PLUGIN_JAR.
 PLUGIN_KEY="PLUGIN_${NAME^^}"

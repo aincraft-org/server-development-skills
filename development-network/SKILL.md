@@ -1,6 +1,6 @@
 ---
 name: development-network
-description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, the /server switch command, BACKENDS registration, connecting an external runServer to the network (EXTERNAL_BACKENDS), DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
+description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, drop-in runtime/auto backends, proxy multiplexing, the /server switch command, BACKENDS registration, connecting an external runServer to the network (EXTERNAL_BACKENDS), DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
 ---
 
 # Velocity Dev Network
@@ -103,6 +103,24 @@ To open proxy admin commands, install a proxy permissions plugin (e.g. LuckPerms
 # deploy + restart just "demo" (lobby, proxy, other backends stay up)
 ./development-network/bin/restart-backend.sh demo /path/to/demo/plugin.jar
 ```
+
+## Drop-in backends (fully managed, zero env vars)
+
+The proxy itself is only a router — **it cannot start or stop servers**. The harness manages servers; drop-in mode makes that fully automatic. Put each plugin's server folder (with the built jar in its `plugins/`) under `runtime/auto/<name>/`:
+
+```text
+development-network/runtime/auto/
+├── myplugin/plugins/myplugin.jar
+└── other/plugins/other-<calver>.jar
+```
+
+Then just boot:
+
+```bash
+./development-network/bin/dev-network.sh
+```
+
+The harness discovers every `runtime/auto/*/` folder, generates its full config (Velocity modern-forwarding secret, `online-mode=false`, ops via `write-ops.sh`), picks a free port, registers it in `velocity.toml` `[servers]`/`try`, boots it, opps your `DEV_USERS`, and manages it (pidfile, restart via `restart-backend.sh <name> <jar>`, stop). No `BACKENDS`/`PLUGIN_*` env vars needed. When auto dirs exist they replace the default `dev` backend.
 
 ## Bring your own server (join an external server)
 

@@ -20,19 +20,38 @@ BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 mkdir -p "$BASE/logs" "$BASE/runtime"
 
-# Resolve registry: explicit BACKENDS wins; else persisted file; else default.
-# EXTERNAL_BACKENDS are ALSO part of the registry: they get [servers] entries
-# and ports, but boot-external.sh manages them (no pidfile/lifecycle).
+# Auto-discovery FIRST: any folder in runtime/auto/<NAME>/ (with your plugin
+# jar in its plugins/ dir) is a MANAGED backend — the harness generates its
+# config (forwarding secret, ops), picks its port, and boots it. Zero env
+# vars. The proxy cannot start servers; the harness does, and it manages them.
+AUTO_NAMES=""
+if [ -d "$BASE/runtime/auto" ]; then
+  for d in "$BASE/runtime/auto"/*/; do
+    [ -d "$d" ] || continue
+    AUTO_NAMES="$AUTO_NAMES $(basename "$d")"
+  done
+fi
+AUTO_NAMES="$(printf '%s\n' $AUTO_NAMES | sort -u | tr '\n' ' ')"
+
+# Resolve registry: explicit BACKENDS wins; else persisted file; else default
+# dev — UNLESS auto-discovered dirs exist, which replace the default.
 if [ -n "${BACKENDS:-}" ]; then
   printf '%s\n' $BACKENDS > "$BASE/runtime/backends.txt"
 else
-  if [ ! -f "$BASE/runtime/backends.txt" ]; then
+  if [ -f "$BASE/runtime/backends.txt" ]; then
+    BACKENDS="$(cat "$BASE/runtime/backends.txt")"
+  elif [ -z "$AUTO_NAMES" ]; then
     printf '%s\n' dev > "$BASE/runtime/backends.txt"
+    BACKENDS=dev
+  else
+    BACKENDS=""
   fi
-  BACKENDS="$(cat "$BASE/runtime/backends.txt")"
 fi
-REGISTRY="$(printf '%s\n' $BACKENDS ${EXTERNAL_BACKENDS:-} | sort -u)"
+
+REGISTRY="$(printf '%s\n' $BACKENDS $AUTO_NAMES ${EXTERNAL_BACKENDS:-} | sort -u)"
 printf '%s\n' $REGISTRY > "$BASE/runtime/backends.txt"
+
+echo "== auto-discovered backends: ${AUTO_NAMES:-none}"
 
 echo "== dev-network: launching components (logs in $BASE/logs) =="
 echo "== backends: $BACKENDS"
@@ -60,13 +79,16 @@ spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-proxy.sh"
 for name in $REGISTRY; do
   if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
     spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-external.sh" "$name"
+  elif [ -d "$BASE/runtime/auto/$name" ]; then
+    spawn env BACKENDS="$REGISTRY" SERVER_DIR="$BASE/runtime/auto/$name" \
+      "$BIN_DIR/boot-backend.sh" "$name"
   else
     spawn env BACKENDS="$REGISTRY" "$BIN_DIR/boot-backend.sh" "$name"
   fi
 done
 
 echo "== waiting for components to become ready =="
-for c in proxy lobby $BACKENDS ${EXTERNAL_BACKENDS:-}; do
+for c in proxy lobby $REGISTRY; do
   ok=0
   for _ in $(seq 1 240); do
     if [ -f "$BASE/runtime/$c.ready" ]; then

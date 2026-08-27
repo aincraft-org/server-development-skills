@@ -47,5 +47,8 @@ if [ -n "$JAR_ARG" ]; then
   echo "== restart-backend: installed plugin $(basename "$JAR_ARG")"
 fi
 
-# --- boot backend (fresh) ---------------------------------------------------
+# --- boot backend (fresh): use its auto-discovered dir if it has one ---------
+if [ -d "$BASE/runtime/auto/$NAME" ]; then
+  exec env SERVER_DIR="$BASE/runtime/auto/$NAME" "$BIN_DIR/boot-backend.sh" "$NAME"
+fi
 exec "$BIN_DIR/boot-backend.sh" "$NAME"
