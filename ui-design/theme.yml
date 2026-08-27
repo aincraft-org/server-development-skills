@@ -1,0 +1,39 @@
+# Suggested implementation format and safe starting defaults for the ui-design skill.
+# Agents MAY copy or adapt these keys to a project's existing configuration format.
+# Projects without an adopted theme can keep their existing palette and use these roles as guidance.
+version: 1
+
+tokens:
+  title:
+    color: "#FFAA00"
+    weight: bold
+  money:
+    color: "#FFAA00"
+    weight: regular
+  body:
+    color: "#FFFFFF"
+    weight: regular
+  muted:
+    color: "#AAAAAA"
+    weight: regular
+  accent:
+    color: "#55FFFF"
+    weight: regular
+  success:
+    color: "#55FF55"
+    weight: regular
+  warning:
+    color: "#FFFF55"
+    weight: regular
+  danger:
+    color: "#FF5555"
+    weight: regular
+  border:
+    color: "#AAAAAA"
+    weight: regular
+
+materials:
+  filler: GRAY_STAINED_GLASS_PANE
+  back: ARROW
+  close: BARRIER
+  next: ARROW
