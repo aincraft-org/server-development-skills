@@ -1,5 +1,5 @@
 ---
-name: velocity-dev-network
+name: development-network
 description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, proxy multiplexing, /server switching, BACKENDS registration, velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
 ---
 
@@ -21,7 +21,7 @@ Stale versions must be updated together in every `boot-*.sh` (version, build, SH
 ## Layout
 
 ```
-velocity-dev-network/
+development-network/
 ├── SKILL.md
 └── bin/
     ├── dev-network.sh          # boot proxy + lobby + all registered backends
@@ -33,7 +33,7 @@ velocity-dev-network/
     └── dev-network-status.sh   # status-ping all endpoints; proves reachability
 ```
 
-Runtime (default `./velocity-dev-network`): `logs/` per component, worlds under `runtime/<name>/`, generated configs in `runtime/`, jars cached in `binaries/`. Jars are only downloaded when missing; checksums are always verified.
+Runtime (default `./development-network`): `logs/` per component, worlds under `runtime/<name>/`, generated configs in `runtime/`, jars cached in `binaries/`. Jars are only downloaded when missing; checksums are always verified.
 
 ## Requirements
 
@@ -46,10 +46,10 @@ Backends are plain names (`[A-Za-z0-9_-]+`). The registry persists in `runtime/b
 
 ```bash
 # two isolated dev servers named "demo" and "vanilla"
-BACKENDS='demo vanilla' ./velocity-dev-network/bin/dev-network.sh
+BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 
 # default (no BACKENDS set): a single backend named "dev"
-./velocity-dev-network/bin/dev-network.sh
+./development-network/bin/dev-network.sh
 ```
 
 Ports: proxy `25565`, lobby `30066`, backends `30067 + index` in the sorted name list (so `demo vanilla` → demo `30067`, vanilla `30068`). Override with `PORT_<NAME>` (e.g. `PORT_DEMO=31001`). `TARGET_SERVER=host.docker.internal` points the proxy at host-run servers from inside a container.
@@ -57,7 +57,7 @@ Ports: proxy `25565`, lobby `30066`, backends `30067 + index` in the sorted name
 ## Start
 
 ```bash
-BACKENDS='demo vanilla' ./velocity-dev-network/bin/dev-network.sh
+BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 ```
 
 Brings up proxy, lobby, and every registered backend; waits for all ready markers; prints the connection banner. Connect Minecraft to **`localhost:25565`**.
@@ -72,7 +72,7 @@ Each backend is a fully isolated Paper server (`runtime/<name>/`); plugins load 
 ```bash
 PLUGIN_DEMO=/path/to/demo/plugin.jar \
 PLUGIN_VANILLA=/path/to/other/plugin.jar \
-BACKENDS='demo vanilla' ./velocity-dev-network/bin/dev-network.sh
+BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 ```
 
 Backends without a plugin run vanilla Paper — multiplexing still proves the harness works.
@@ -83,7 +83,7 @@ Backends without a plugin run vanilla Paper — multiplexing still proves the ha
 # in the plugin project
 ./gradlew build
 # deploy + restart just "demo" (lobby, proxy, other backends stay up)
-./velocity-dev-network/bin/restart-backend.sh demo /path/to/demo/plugin.jar
+./development-network/bin/restart-backend.sh demo /path/to/demo/plugin.jar
 ```
 
 `restart-backend.sh` SIGTERMs that backend (world save), clears stale CalVer jars from its `plugins/`, installs the new jar, and boots it. Players on the restarted backend are kicked back to the lobby by the proxy.
@@ -91,7 +91,7 @@ Backends without a plugin run vanilla Paper — multiplexing still proves the ha
 ## Verifying reachability
 
 ```bash
-./velocity-dev-network/bin/dev-network-status.sh
+./development-network/bin/dev-network-status.sh
 ```
 
 Status-pings the proxy and every endpoint with a correct protocol handshake:
@@ -117,7 +117,7 @@ backend:30068 (30068)  reachable  motd='dev-network vanilla' version=Paper 26.2
 ## Stopping
 
 ```bash
-./velocity-dev-network/bin/stop-dev-network.sh
+./development-network/bin/stop-dev-network.sh
 ```
 
 Stops proxy, lobby, and every registered backend by pidfile (Java PID, so Paper's save hooks run), escalates to SIGKILL after 30s, clears ready markers.

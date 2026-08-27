@@ -13,7 +13,7 @@
 
 set -eo pipefail
 
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 PROXY_PORT="${PROXY_PORT:-25565}"
 
 REGISTRY="${BACKENDS:-$(cat "$BASE/runtime/backends.txt" 2>/dev/null || echo dev)}"

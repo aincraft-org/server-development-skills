@@ -16,7 +16,7 @@
 set -eo pipefail
 
 NAME="${1:?usage: restart-backend.sh <NAME> [plugin.jar]}"
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JAR_ARG="${2:-}"
 

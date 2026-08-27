@@ -14,7 +14,7 @@ set -eo pipefail
 VERSION="4.1.1"
 BUILD="24"
 SHA256="846411d2d0560fed0f23496ffb89681be528d2c0650ecdcf21724d2d7bd9c1ee"
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 PROXY_PORT="${PROXY_PORT:-25565}"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 

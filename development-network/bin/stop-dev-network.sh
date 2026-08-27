@@ -7,7 +7,7 @@
 
 set -eo pipefail
 
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 
 # All components: proxy, lobby, and every backend in the registry.
 COMPONENTS="proxy lobby"

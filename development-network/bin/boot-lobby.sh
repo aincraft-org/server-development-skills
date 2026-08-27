@@ -11,7 +11,7 @@ set -eo pipefail
 VERSION="26.2"
 BUILD="119"
 SHA256="a8c9140c3075bd7c04973e9cdc491b21bfe6bad472b674ef932a4ae0fec19629"
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 SERVER_PORT="${SERVER_PORT:-30066}"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 

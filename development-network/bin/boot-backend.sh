@@ -20,7 +20,7 @@ NAME="${1:?usage: boot-backend.sh <NAME>}"
 VERSION="26.2"
 BUILD="119"
 SHA256="a8c9140c3075bd7c04973e9cdc491b21bfe6bad472b674ef932a4ae0fec19629"
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 TARGET_SERVER="${TARGET_SERVER:-localhost}"
 
 [ -d "$BASE" ] || { echo "base dir missing: $BASE" >&2; exit 1; }

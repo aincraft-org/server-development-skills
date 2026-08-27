@@ -6,13 +6,13 @@
 # Backends:  BACKENDS="name1 name2 ..." (or $BASE/runtime/backends.txt persists
 #            the registry). Each backend is a fully isolated Paper server
 #            (runtime/<name>/), one plugin per backend via PLUGIN_<NAME>.
-# Runtime:   $BASE (default ./velocity-dev-network).
+# Runtime:   $BASE (default ./development-network).
 # Teardown:  Ctrl-C here (SIGINT to all booters; their EXIT traps stop java),
 #            or ./bin/stop-dev-network.sh.
 
 set -eo pipefail
 
-BASE="${BASE:-$PWD/velocity-dev-network}"
+BASE="${BASE:-$PWD/development-network}"
 BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 mkdir -p "$BASE/logs" "$BASE/runtime"
