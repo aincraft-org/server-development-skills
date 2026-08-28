@@ -63,19 +63,33 @@ fi
 if ! port_free 30066; then
   echo "!! dev-network: lobby port 30066 already in use" >&2; exit 1
 fi
-# Reserve externals FIRST (their ports are never reassigned), then allocate
-# managed ports — auto ports must also avoid the external-reserved ports.
+# One shared mapping: explicit PORT_<NAME> wins; else DEFAULT = 30067 +
+# sorted-registry index (the EXACT math boot-backend.sh/boot-external.sh use
+# to agree with the proxy). Reserve external + explicit managed ports FIRST,
+# then assign auto ports, skipping anything already reserved/occupied.
 RESERVED=""
 for name in $REGISTRY; do
   KEY="PORT_${name^^}"
   if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
+    # External: reserve its explicit port, or its sorted-index default — never
+    # reassign a live server's port, and never let a managed backend take it.
     if [ -n "${!KEY:-}" ]; then
       P="${!KEY}"
       echo "   $name (external) -> port $P (explicit)"
     else
-      P=$((30067 + IDX)); IDX=$((IDX + 1))
+      IDX=0
+      for x in $REGISTRY; do
+        [ "$x" = "$name" ] && break
+        IDX=$((IDX + 1))
+      done
+      P=$((30067 + IDX))
       echo "   $name (external, already running) -> port $P"
     fi
+    export "$KEY=$P"
+    RESERVED="$RESERVED $P"
+  elif [ -n "${!KEY:-}" ]; then
+    P="${!KEY}"
+    echo "   $name -> port $P (explicit)"
     export "$KEY=$P"
     RESERVED="$RESERVED $P"
   fi
@@ -92,13 +106,15 @@ port_used() { # <port> -> 0 free, 1 used (occupied or external-reserved)
 
 for name in $REGISTRY; do
   KEY="PORT_${name^^}"
-  if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
-    : # external: already handled above
-  elif [ -n "${!KEY:-}" ]; then
-    port_free "${!KEY}" || { echo "!! dev-network: $name port ${!KEY} in use" >&2; exit 1; }
-    echo "   $name -> port ${!KEY} (explicit)"
+  if [ -n "${!KEY:-}" ]; then
+    : # already reserved above (explicit or external)
   else
-    P=$((30067 + IDX)); IDX=$((IDX + 1))
+    IDX=0
+    for x in $REGISTRY; do
+      [ "$x" = "$name" ] && break
+      IDX=$((IDX + 1))
+    done
+    P=$((30067 + IDX))
     while ! port_used "$P"; do P=$((P + 1)); done
     export "$KEY=$P"
     echo "   $name -> port $P (auto)"
