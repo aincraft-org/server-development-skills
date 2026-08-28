@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, or the project README, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, writing the scaffold README, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, or google-java-format versions.
+description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, or project README, wiring a plugin project into the local development-network Gradle tasks, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, writing the scaffold README, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, google-java-format, or development-network versions.
 ---
 
 # Project Setup (Paper 26.2 Plugin)
@@ -240,6 +240,53 @@ Verify the README matches `plugin.yml` before committing: name, description, ver
 ./gradlew runServer             # downloads Paper 26.2, launches test server with the plugin jar
 ```
 
+## Development network (optional)
+
+**REQUIRED SUB-SKILL:** Use `development-network` when this plugin must run behind the local Velocity proxy, share a network with other plugin projects, or attach an already-running Paper server. That skill is the source of truth for ownership, lifecycle, ports, forwarding, and offline-mode preflight. Keep `runServer` for a standalone Paper process.
+
+Wire the Gradle plugin through the existing composite build:
+
+```kotlin
+// settings.gradle.kts
+includeBuild("/path/to/plugin-multiplexer/network")
+// If this repository vendors the harness instead:
+includeBuild("./development-network/network")
+
+// build.gradle.kts — add to the existing plugins block
+plugins {
+    id("io.github.development-network")
+}
+```
+
+For a shared network, start the harness once, then add managed or external backends with the shell workflows:
+
+```bash
+# Start the proxy, lobby, and initial managed backend.
+BACKENDS='dev' ./development-network/bin/dev-network.sh
+
+# Register another managed backend with its server directory.
+BASE=/path/to/development-network \
+  ./development-network/bin/register-backend.sh hero 30070 /path/to/project/run
+
+# Join an already-running external Paper server without owning its lifecycle.
+EXTERNAL_DIR=/path/to/project/run \
+BASE=/path/to/development-network \
+BACKENDS='dev hero' \
+EXTERNAL_BACKENDS='hero' \
+PORT_HERO=30070 \
+./development-network/bin/dev-network.sh
+```
+
+For a one-project network, use the Gradle plugin tasks:
+
+```bash
+./gradlew runNetwork    # proxy + lobby + this plugin's managed backend
+./gradlew networkTest   # read-only checks against a running network
+./gradlew restartNetwork -PnetworkBackend=<name>
+```
+
+The current Gradle plugin exposes `runNetwork`, `networkTest`, and `restartNetwork`. Use the shell registration workflows when multiple plugin projects share a network. Before any network task or client connection, complete the `development-network` offline-mode preflight: verify the active Velocity proxy, lobby, and every backend use `online-mode=false`. Set that mode only for a proxy this workflow owns; for an existing or external proxy with unknown or online mode, stop and ask the user. Proxy and Paper settings are independent.
+
 ## Common mistakes (observed in baseline testing)
 
 | Wrong | Right | Why |
@@ -258,6 +305,9 @@ Verify the README matches `plugin.yml` before committing: name, description, ver
 | `ignoreFailures = true` / `isIgnoreFailures = true` | leave failures enabled (default or explicit `false`) | report-only analyzers do not gate CI |
 | analyzers configured but not attached to `check` | `tasks.named("check") { dependsOn(tasks.withType<…>()) }` | `./gradlew clean check` must fail when any analyzer fails |
 | unpinned `main` URL for `google_checks.xml` | use the version-tagged `checkstyle-13.11.0` URL above | The rule set must change only with the pinned Checkstyle version |
+| Putting `includeBuild` in `build.gradle.kts` | Put it in `settings.gradle.kts`, and apply the network plugin inside the existing `plugins` block | Composite build discovery happens in settings; a second plugins block is invalid |
+| Using `runServer` for a backend in a shared network | Start the harness once with `dev-network.sh`, then use `register-backend.sh` for a managed server directory or the `EXTERNAL_BACKENDS`/`boot-external.sh` workflow for an already-running server; reserve `runNetwork` for one-project convenience | The task or script that owns the Paper process must be explicit |
+| Starting or connecting before the development-network offline-mode preflight | Verify the active Velocity proxy, lobby, and every backend use `online-mode=false`; set an owned proxy offline, or stop and ask before changing or proceeding with an external proxy | Proxy and Paper settings are independent, and an unknown external proxy mode is not permission to proceed |
 
 Reproducibility option: after first resolve, pin the exact paper-api build (e.g. `26.2.build.112-stable`) instead of `+`.
 
