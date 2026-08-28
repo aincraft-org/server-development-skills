@@ -1,6 +1,6 @@
 ---
 name: development-network
-description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, per-plugin dev servers, drop-in runtime/auto backends, proxy multiplexing, the /server switch command, BACKENDS registration, connecting an external runServer to the network (EXTERNAL_BACKENDS), DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
+description: Use when setting up a local Velocity proxy development network — a proxy with a basic lobby server plus one or more isolated dev Paper servers behind it — so a user connects to ONE address (localhost:25565) and multiplexes between different plugin development environments with the built-in /server command instead of connecting to multiple servers. Triggers include booting a dev Velocity network, the runNetwork Gradle task and includeBuild wiring, per-plugin dev servers, drop-in runtime/auto backends, proxy multiplexing, the /server switch command, BACKENDS registration, connecting an external runServer to the network (EXTERNAL_BACKENDS), DEV_USERS operator setup and ops.json offline UUIDs, proxy permission nodes (velocity.command.*, /lpv), velocity.toml, forwarding.secret, paper-global.yml proxies.velocity, restarting one backend after a plugin rebuild, and cleanly stopping the whole network.
 ---
 
 # Velocity Dev Network
@@ -23,6 +23,9 @@ Stale versions must be updated together in every `boot-*.sh` (version, build, SH
 ```
 development-network/
 ├── SKILL.md
+├── network/                    # Gradle plugin (io.github.development-network) — runNetwork task
+│   ├── build.gradle.kts        #   java-gradle-plugin + Kotlin 2.4.0 (matches Gradle 9.7.1)
+│   └── src/main/kotlin/…       #   DevNetworkPlugin + RunNetworkTask
 └── bin/
     ├── dev-network.sh          # boot proxy + lobby + all registered backends
     ├── stop-dev-network.sh     # graceful per-pidfile stop of proxy, lobby, backends
@@ -77,6 +80,31 @@ PLUGIN_DEMO=/path/to/demo/plugin.jar \
 PLUGIN_VANILLA=/path/to/other/plugin.jar \
 BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 ```
+
+## Gradle integration: `runNetwork` task
+
+The harness ships as a Gradle plugin (`io.github.development-network`, module `network/`). Once wired, plugin projects spawn the whole network — proxy + lobby + their managed backend — with automatic port registration, instead of a bare `runServer`:
+
+```kotlin
+// settings.gradle.kts
+includeBuild("/path/to/development-network/network")
+
+// build.gradle.kts — inside the EXISTING plugins block (a second plugins block is illegal)
+plugins {
+    id("io.github.development-network")
+}
+```
+
+```bash
+./gradlew runNetwork
+# -PnetworkBackend=<name>   backend name (default: project.name)
+# -PnetworkBase=<dir>       network runtime dir (default: run/network)
+# -PnetworkProxyPort=<n>    proxy port (default: 25565; 0 = auto-pick a free port)
+# -PnetworkJarTask=<name>   Jar task to deploy (default: "jar")
+# -PdevNetworkBin=<dir>     harness bin (default: $DEV_NETWORK_BIN, else ROOT/development-network/bin)
+```
+
+`runNetwork` builds the jar (its actual `archiveFile`, so shadowJar/archive overrides work), copies it into `runtime/auto/<name>/plugins/`, finds free ports, spawns the network with the harness, and blocks like run-paper; Ctrl-C tears it all down. The Kotlin pin is **2.4.0** (Gradle 9.7.1 bundles 2.4.0; older Kotlin fails the applied-script/Kotlin-module checks), and the task class must stay `abstract` (Gradle requirement).
 
 ## Permissions & console admin
 
