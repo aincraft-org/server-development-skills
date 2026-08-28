@@ -63,25 +63,43 @@ fi
 if ! port_free 30066; then
   echo "!! dev-network: lobby port 30066 already in use" >&2; exit 1
 fi
-IDX=0
+# Reserve externals FIRST (their ports are never reassigned), then allocate
+# managed ports — auto ports must also avoid the external-reserved ports.
+RESERVED=""
 for name in $REGISTRY; do
   KEY="PORT_${name^^}"
   if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
-    # External servers are already listening: keep their port mapping (override
-    # or default) — never auto-reallocate a live server's port.
     if [ -n "${!KEY:-}" ]; then
-      echo "   $name (external) -> port ${!KEY} (explicit)"
+      P="${!KEY}"
+      echo "   $name (external) -> port $P (explicit)"
     else
       P=$((30067 + IDX)); IDX=$((IDX + 1))
-      export "$KEY=$P"
       echo "   $name (external, already running) -> port $P"
     fi
+    export "$KEY=$P"
+    RESERVED="$RESERVED $P"
+  fi
+done
+
+port_used() { # <port> -> 0 free, 1 used (occupied or external-reserved)
+  local p="$1"
+  if ! port_free "$p"; then return 1; fi
+  for r in $RESERVED; do
+    [ "$r" = "$p" ] && return 1
+  done
+  return 0
+}
+
+for name in $REGISTRY; do
+  KEY="PORT_${name^^}"
+  if printf '%s\n' ${EXTERNAL_BACKENDS:-} | grep -qx "$name"; then
+    : # external: already handled above
   elif [ -n "${!KEY:-}" ]; then
     port_free "${!KEY}" || { echo "!! dev-network: $name port ${!KEY} in use" >&2; exit 1; }
     echo "   $name -> port ${!KEY} (explicit)"
   else
     P=$((30067 + IDX)); IDX=$((IDX + 1))
-    while ! port_free "$P"; do P=$((P + 1)); done
+    while ! port_used "$P"; do P=$((P + 1)); done
     export "$KEY=$P"
     echo "   $name -> port $P (auto)"
   fi
