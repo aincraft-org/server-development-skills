@@ -67,13 +67,19 @@ abstract class RunNetworkTask : DefaultTask() {
             "networkBackend '$name' invalid (use [A-Za-z0-9_-]+)"
         }
 
-        // Harness bin dir: -PdevNetworkBin > $DEV_NETWORK_BIN > ROOT/development-network/bin.
+        // Harness bin dir: -PdevNetworkBin > $DEV_NETWORK_BIN > $DEV_NETWORK_DIR/bin
+        // (the same env openblock's settings use for includeBuild) >
+        // ROOT/development-network/bin > ../server-development-skills/… (sibling
+        // checkout when the harness lives next to the consumer project).
         val harnessBin = prop("devNetworkBin")
             ?.let { project.file(it).absolutePath }
             ?: System.getenv("DEV_NETWORK_BIN")
+            ?: System.getenv("DEV_NETWORK_DIR")?.let { project.file("$it/bin").absolutePath }
             ?: project.rootProject.projectDir.resolve("development-network/bin").takeIf { it.isDirectory }?.absolutePath
+            ?: project.rootProject.projectDir.parentFile.resolve("server-development-skills/development-network/bin")
+                .takeIf { it.isDirectory }?.absolutePath
         check(harnessBin != null && project.file("$harnessBin/dev-network.sh").isFile) {
-            "development-network harness bin not found — set -PdevNetworkBin or \$DEV_NETWORK_BIN"
+            "development-network harness bin not found — set -PdevNetworkBin, \$DEV_NETWORK_BIN, or \$DEV_NETWORK_DIR"
         }
 
         val baseDir = project.layout.projectDirectory.dir(base).asFile
