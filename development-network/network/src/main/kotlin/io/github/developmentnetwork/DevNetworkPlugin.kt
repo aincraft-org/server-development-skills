@@ -26,6 +26,8 @@ import org.gradle.jvm.tasks.Jar
  *                             $DEV_NETWORK_BIN, or ROOT/development-network/bin)
  *   -PnetworkProxyPort=<n>    proxy port (default: 25565; 0 = auto-pick free)
  *   -PnetworkJarTask=<name>   Jar task to deploy (default: "jar")
+ *   -PnetworkDevUsers=<name>  accounts to op on every backend (default: "dev";
+ *                             use your real client profile name)
  */
 class DevNetworkPlugin : Plugin<Project> {
     override fun apply(project: Project) {
@@ -102,7 +104,12 @@ abstract class RunNetworkTask : DefaultTask() {
         val proxyPortProp = prop("networkProxyPort")?.toIntOrNull() ?: 25565
         val proxyPort = if (proxyPortProp == 0) findFreePort(25565) else proxyPortProp
         val backendPort = findFreePort(30067)
-        println("== runNetwork: backend '$name' -> port $backendPort; proxy -> $proxyPort (BASE=$base)")
+
+        // Deterministic ops: -PnetworkDevUsers forwards DEV_USERS to the harness
+        // (default "dev"). A real client uses its actual profile name, so set
+        // your account here to be opped on every backend.
+        val devUsers = prop("networkDevUsers") ?: "dev"
+        println("== runNetwork: backend '$name' -> port $backendPort; proxy -> $proxyPort; ops -> $devUsers (BASE=$base)")
 
         val cmd = listOf(
             "env",
@@ -110,6 +117,7 @@ abstract class RunNetworkTask : DefaultTask() {
             "BACKENDS=$name",
             "PORT_${name.uppercase()}=$backendPort",
             "PROXY_PORT=$proxyPort",
+            "DEV_USERS=$devUsers",
             "$harnessBin/dev-network.sh",
         )
         val proc = ProcessBuilder(cmd)

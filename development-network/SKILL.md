@@ -113,6 +113,7 @@ plugins {
 # -PnetworkProxyPort=<n>    proxy port (default: 25565; 0 = auto-pick a free port)
 # -PnetworkJarTask=<name>   Jar task to deploy (default: "jar")
 # -PdevNetworkBin=<dir>     harness bin (default: $DEV_NETWORK_BIN, else ROOT/development-network/bin)
+# -PnetworkDevUsers=<name>  accounts to op on every backend (default: "dev"; use your real client profile name)
 ```
 
 `runNetwork` builds the jar (its actual `archiveFile`, so shadowJar/archive overrides work), copies it into `runtime/auto/<name>/plugins/`, finds free ports, spawns the network with the harness, and blocks like run-paper; Ctrl-C tears it all down. The Kotlin pin is **2.4.0** (Gradle 9.7.1 bundles 2.4.0; older Kotlin fails the applied-script/Kotlin-module checks), and the task class must stay `abstract` (Gradle requirement).
