@@ -60,6 +60,17 @@ BACKENDS='demo vanilla' ./development-network/bin/dev-network.sh
 
 Ports: proxy `25565`, lobby `30066`, backends `30067 + index` in the sorted name list (so `demo vanilla` → demo `30067`, vanilla `30068`). Override with `PORT_<NAME>` (e.g. `PORT_DEMO=31001`). `TARGET_SERVER=host.docker.internal` points the proxy at host-run servers from inside a container.
 
+## Port allocation
+
+Ports are allocated in one shared mapping (the same math `boot-backend.sh`/`boot-external.sh` use, so they always agree with the proxy):
+
+1. **Default**: `30067 + sorted-registry-index` — each backend's position in the sorted name list.
+2. **Explicit override wins**: `PORT_<NAME>` (e.g. `PORT_DEMO=31001`) beats the default.
+3. **Externals reserve their port** (explicit or default) and are **never reassigned** — a live server's port is fixed.
+4. **Managed autos skip** anything occupied **or already reserved** (external or explicit), scanning upward from their default.
+
+So `demo ext` with no overrides → demo `30067`, ext `30068`; if `30068` is taken by an external, a managed auto moves up to the next free port. The proxy, lobby (`30066`), and proxy port (`25565`) are checked up front and fail fast if in use.
+
 ## Start
 
 ```bash
@@ -105,6 +116,12 @@ plugins {
 ```
 
 `runNetwork` builds the jar (its actual `archiveFile`, so shadowJar/archive overrides work), copies it into `runtime/auto/<name>/plugins/`, finds free ports, spawns the network with the harness, and blocks like run-paper; Ctrl-C tears it all down. The Kotlin pin is **2.4.0** (Gradle 9.7.1 bundles 2.4.0; older Kotlin fails the applied-script/Kotlin-module checks), and the task class must stay `abstract` (Gradle requirement).
+
+## Repository structure
+
+The harness and Gradle plugin ship **inside this repo** as a first-party skill directory — per repo precedent, only third-party content is vendored as a submodule (`superpowers`); first-party skills live as dirs and compose with the sibling skills they depend on (`project-setup`, `autonomous-testing`). Nobody needs to clone anything extra to use it: `includeBuild("./development-network/network")`.
+
+**Future extraction** (only if the harness must live independently): do it only once a **new remote exists** — a submodule pointing at a not-yet-pushed repo breaks fresh clones (bootstrap order). Then: `git mv` the dir into the new repo, push it, `git submodule add <remote> development-network`, pin to a tag (like `superpowers`), and update the consumer `includeBuild` path in this section.
 
 ## Permissions & console admin
 
