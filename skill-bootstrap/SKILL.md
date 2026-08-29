@@ -70,10 +70,9 @@ The `skills` CLI command is always explicitly pinned and non-interactive:
 npx --yes skills@1.5.23 add <source> --global --agent <pi|codex> --copy --yes --skill <name>
 ```
 
-For Paper rows, `<source>` is this repository root. For Google rows, the wrapper
-constructs the exact pinned tree URL as `SOURCE/tree/REF/SUBPATH` from the catalog's
-repository root, commit, and skill directory before invoking the CLI. Do not replace
-the version with bare `npx skills`, `skills update`, or an unpinned source.
+For Paper rows, `<source>` is this repository root. For Google rows, `<source>` is
+the exact pinned tree URL represented by that row in the catalog. Do not replace the
+version with bare `npx skills`, `skills update`, or an unpinned source.
 
 ### Dry runs and updates
 
