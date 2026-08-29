@@ -5,7 +5,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 ## Skills
 
 | Skill | Purpose |
-|---|---|
+| [architecture-router](architecture-router/SKILL.md) | Architecture decisions for plugin code: routes design and review signals (god classes, duplicated logic, domain/framework tangles, unclear boundaries) to DDD, SOLID, DRY/KISS/YAGNI, layered/hexagonal, and CQRS directives, with optional deep-dive references under `architecture-router/references/` |
 | [project-setup](project-setup/SKILL.md) | Scaffold a Paper 26.2 plugin: pinned Gradle/run-paper/Spotless versions, executable Spotless/Checkstyle/PMD/SpotBugs quality gates via `./gradlew clean check`, CalVer versioning, plugin.yml, the scaffold README, and the recommended multi-module Java layout |
 | [ci-release](ci-release/SKILL.md) | CI and release engineering: GitHub Actions with mandatory static-analysis CI gates via `./gradlew clean check`, CalVer `YYYY.MM.DD.<github_run_number>` versioning, rolling nightly releases, stable releases, and public-project shields.io badges |
 | [autonomous-testing](autonomous-testing/SKILL.md) | Autonomous Minecraft bots in Rust with Azalea: task classification, packet-based completion validation, security hardening, and testing |
