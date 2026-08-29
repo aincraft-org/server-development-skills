@@ -24,9 +24,9 @@ Add a "Port allocation" section to `development-network/SKILL.md` (after
 
 ## Track A — repo-structure ruling (FR-002)
 
-Add "Repository structure": keep in this repo; only third-party `superpowers`
-is submoduled (first-party precedent); future extraction requires a new
-remote first.
+Add "Repository structure": keep in this repo; only third-party skills are
+submoduled (first-party precedent); future extraction requires a new remote
+first.
 
 **Verify**: `grep -n "Repository structure" SKILL.md`.
 
@@ -38,8 +38,8 @@ when the user triggers it:
 - **New remote exists first** (bootstrap: a fresh clone must resolve the
   submodule URL): `gh repo create`/manual, then push the harness.
 - **Submodule pin/update**: `git submodule add <remote> development-network` +
-  commit (pin to a tag like the `superpowers` precedent), documented update
-  flow.
+  commit (pin to a tag like the previous third-party-submodule precedent),
+  documented update flow.
 - **Consumer `includeBuild` path**: SKILL.md wiring updated to the new remote
   path (or `$DEV_NETWORK_BIN` env), verified with `./gradlew runNetwork`.
 - **Discoverability preserved**: README + frontmatter unchanged in the parent;

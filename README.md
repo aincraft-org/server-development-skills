@@ -14,7 +14,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 | [ui-design](ui-design/SKILL.md) | Player-facing UI: Adventure/MiniMessage text, WCAG AA contrast, typography, inventory GUI layout |
 | [docs-maintenance](docs-maintenance/SKILL.md) | End-user Fumadocs documentation for every repo: content/docs contract with a reduced fallback for libraries and internal tools, floor-to-ceiling page ladder (idea → basics → everyday → advanced), design-token styling, and an executable gate covering content, navigation, links, and styling |
 | [spec-driven-development](spec-driven-development/SKILL.md) | Turn non-trivial feature requests into reviewed artifacts before code: triage → specify (`FR-xxx` requirements with acceptance criteria) → clarify → plan → tasks with inline requirement traceability → gated implementation, using the repo's dated `docs/superpowers/specs|plans` convention |
-| [development-network](development-network/SKILL.md) | Local Velocity proxy dev network: one proxy + basic lobby + N isolated Paper backends, multiplexed via the built-in `/server` command on a single address (`localhost:25565`), with automatic developer operator setup, per-backend plugin install and restart scripts |
+| [development-network](development-network/SKILL.md) | Local Velocity proxy dev network: one proxy + basic lobby + N isolated Paper backends, optional clickable `/servers`/`/hub` navigator, multiplexed on a single address (`localhost:25565`), with automatic developer operator setup, verification, per-backend plugin install, and restart scripts |
 
 ## Conventions
 
@@ -25,21 +25,7 @@ Curated, verified skills for Minecraft/Paper server development. Agents working 
 
 ## Usage
 
-Skills are consumed by agent harnesses that load `SKILL.md` files (e.g. superpowers-style skill directories). Each skill is self-contained: read the skill, follow its pinned versions and conventions, and apply its verify commands before reporting completion.
-
-## Superpowers
-
-The upstream [obra/superpowers](https://github.com/obra/superpowers) process-skill collection (brainstorming, writing-plans, executing-plans, subagent-driven-development, test-driven-development, systematic-debugging, verification-before-completion, code review pair, git worktrees, branch finishing) is vendored as a git submodule at `superpowers/`, pinned to tagged release **v6.3.0**, commit `b36e0829c6d0140e93cfef2ca599b1b07d4a7797` (verified 2026-08-21). Clone with `--recurse-submodules`, or run `git submodule update --init`.
-
-To update the pin:
-
-```bash
-git -C superpowers fetch --tags
-git -C superpowers checkout <new-tag>
-git add superpowers
-```
-
-`spec-driven-development` consumes `executing-plans` and `subagent-driven-development` from this submodule during implementation.
+Skills are consumed by agent harnesses that load `SKILL.md` files. Each skill is self-contained: read the skill, follow its pinned versions and conventions, and apply its verify commands before reporting completion.
 
 ## Contributing
 

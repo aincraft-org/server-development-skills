@@ -16,9 +16,9 @@ in SKILL.md and README. No behavior/code changes.
 
 - `development-network/SKILL.md`: add "Port allocation" docs section.
 - `README.md`: no change expected unless the repo decision changes it.
-- Repo-structure decision: recommend **keep in this repo** (per `superpowers`
-  submodule precedent — first-party skills are not submoduled; the harness
-  composes with sibling skills). Document that ruling; no actual split.
+- Repo-structure decision: recommend **keep in this repo** (first-party
+  skills are not submoduled; the harness composes with sibling skills).
+  Document that ruling; no actual split.
 - Explicitly out of scope: any code/behavior change; actually creating a
   standalone repo; a real client-login test; proxy permission plugin install.
 

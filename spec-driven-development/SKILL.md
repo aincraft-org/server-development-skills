@@ -7,7 +7,7 @@ description: Use when starting any non-trivial feature, refactor, migration, API
 
 **The spec is the contract; code is a consequence of it.** Never implement non-trivial work directly from a vague prompt. Pipeline: **Triage → Specify → Clarify → Plan → Tasks → Implement → Validate**, with a hard human-approval gate before any implementation begins.
 
-Methodology adapted from [GitHub Spec Kit](https://github.github.io/spec-kit/) (Specify → Clarify → Plan → Tasks → Implement), [pi-sdd-kit](https://github.com/felipefontoura/pi-sdd-kit) (explicit approval gates — artifact existence is never approval), and [Kiro Specs](https://kiro.dev/docs/specs/) (structured acceptance criteria). Sources verified 2026-08-21. Execution consumes skills from the vendored `superpowers/` submodule (see README).
+Methodology adapted from [GitHub Spec Kit](https://github.github.io/spec-kit/) (Specify → Clarify → Plan → Tasks → Implement), [pi-sdd-kit](https://github.com/felipefontoura/pi-sdd-kit) (explicit approval gates — artifact existence is never approval), and [Kiro Specs](https://kiro.dev/docs/specs/) (structured acceptance criteria). Sources verified 2026-08-21. Execution is agent-driven: each session runs the current plan's task list directly or a subagent per task, with a review gate before a task closes.
 
 ## Triage first
 
@@ -28,7 +28,7 @@ Ratchet: mid-work discovery of hidden complexity upgrades Quick → Full. Never 
 | Design (spec) | `docs/superpowers/specs/YYYY-MM-DD-<slug>-design.md` | WHAT and WHY |
 | Implementation plan | `docs/superpowers/plans/YYYY-MM-DD-<slug>.md` | HOW, task-by-task |
 
-Both use today's UTC date in the filename. Worked examples: `2026-08-21-static-analysis-ci-*` in this repository. Plans use checkbox task syntax so they are directly consumable by `superpowers/executing-plans` and `superpowers/subagent-driven-development`.
+Both use today's UTC date in the filename. Worked examples: `2026-08-21-static-analysis-ci-*` in this repository. Plans use checkbox (`- [ ]`) task syntax so the task list is directly consumable by any agent session.
 
 ## Phase 1 — Specify
 
@@ -74,11 +74,17 @@ Ordering: prerequisite research → shared contracts → independent slices → 
 
 ## Phase 5 — Implement and validate
 
-Execute tasks via `superpowers/executing-plans` (single session) or `superpowers/subagent-driven-development` (parallelizable slices). Rules:
+Execute tasks in one session tracking the plan checkbox list, or dispatch one agent per task when slices are independent. Rules:
 
 - A task closes only when its verification command passes **and** the implementation still matches the spec. Divergence updates the artifacts first, then the code.
 - Never silently expand scope. Discovered adjacent work becomes a new spec'd task or gets explicitly deferred.
-- Final validation runs once at the end across all changed surfaces, then the workspace/ledger cleanup those skills prescribe.
+- Final validation runs once at the end across all changed surfaces, then remove any scratch workspace/ledger files the execution created.
+
+## Task-runner contract
+
+- The plan file is the source of task state: tick a checkbox only when that task's verification command passes and the implementation still matches the spec.
+- A task's verification is its own exact command plus expected result — never a substitute check.
+- Independent tasks may run in parallel only when they do not share files or interfaces; declare handoff contracts up front otherwise.
 
 ## Change control
 

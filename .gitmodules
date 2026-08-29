@@ -1,6 +1,3 @@
-[submodule "superpowers"]
-	path = superpowers
-	url = https://github.com/obra/superpowers.git
 [submodule "development-network"]
 	path = development-network
 	url = https://github.com/aincraft-org/plugin-multiplexer.git
