@@ -87,7 +87,6 @@ def export_csv(records, csv_path: Path):
             writer.writerow(rec)
     print(f"✓ Exported CSV: {csv_path} ({len(records)} entries)")
 
-
 def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
     """Convert .ods to .xlsx using headless LibreOffice."""
     cmd = [
@@ -100,11 +99,11 @@ def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
         str(ods_path)
     ]
     res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode == 0 and xlsx_path.exists():
-        print(f"✓ Exported XLSX: {xlsx_path} ({xlsx_path.stat().st_size} bytes)")
-    else:
-        print(f"⚠ Warning: LibreOffice XLSX conversion returned code {res.returncode}: {res.stderr.strip()}", file=sys.stderr)
-
+    if res.returncode != 0:
+        raise RuntimeError(f"LibreOffice XLSX conversion failed (exit code {res.returncode}): {res.stderr.strip()}")
+    if not xlsx_path.exists():
+        raise FileNotFoundError(f"Expected XLSX output was not created at: {xlsx_path}")
+    print(f"✓ Exported XLSX: {xlsx_path} ({xlsx_path.stat().st_size} bytes)")
 
 def update_readme(records, readme_path: Path):
     """Generate clean README.md with table overview."""
