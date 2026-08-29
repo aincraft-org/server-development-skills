@@ -7,10 +7,10 @@ description: Use when deploying a built Minecraft/Paper plugin or mod jar to Peb
 
 Deployment is **jar upload, not remote install**: build the jar from this GitHub repository (locally or in GitHub Actions), push it into the server's `plugins/` (or `mods/`) directory, and restart the server. `pb` has no `link`, `install`, or repository command that clones GitHub source onto a PebbleHost server; installing `pb` from a GitHub release is only CLI installation.
 
-Two supported paths, same upload primitive:
+Use one of these paths, but only after the selected `pb` binary passes the push-capability check below:
 
-- **`deployPebbleHost` Gradle task** (recommended) — via the `dev.mintychochip.pebblehost.deploy` plugin; handles `pb` resolution, rollout planning, restart, verification, rollback.
-- **`pb` CLI directly** — `pb file push` for manual uploads.
+- **`deployPebbleHost` Gradle task** (recommended) — via the `dev.mintychochip.pebblehost.deploy` plugin; handles `pb` resolution, rollout planning, restart, verification, rollback. Set `pbBinary` explicitly when the plugin's default CLI does not pass the check.
+- **`pb` CLI directly** — `pb file push` for manual uploads, using a released CLI that exposes that subcommand or a locally built push-capable binary.
 
 Pins and behaviors verified 2026-08-28 against `pebblehost-cli` (master, tags, `feat/file-push-restored` branch) and `pebblehost-deploy` sources (`PebbleHostPlugin.java`, `DeployPebbleHostTask.java`, `PebbleHostClient.java`).
 
@@ -29,6 +29,18 @@ GitHub is the source and CI surface; PebbleHost receives the built artifact. Pus
   ```
 
   Installs to `~/.local/bin` (or `/usr/local/bin`), on `PATH`. Update with `pb update`.
+
+  Before any upload, fail fast:
+
+  ```bash
+  pb --version
+  pb file --help | grep -Fq 'push' || {
+      echo "This pb binary does not expose 'file push'; deployment is unavailable." >&2
+      exit 1
+  }
+  ```
+
+  Do not claim deployment succeeded unless this check passes and the server log confirms the plugin loaded.
 
 - **`file push` caveat — released CLI lacks it.** The latest release tag `v2026.8.27.23` does not contain `file push`; that subcommand exists only on the unmerged `feat/file-push-restored` branch (verified 2026-08-28). The deploy plugin calls `pb file push`, so a stock install fails with `error: unrecognized subcommand 'file push'`. Until a release includes it, build from source:
 
