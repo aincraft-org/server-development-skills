@@ -30,15 +30,22 @@ GitHub is the source and CI surface; PebbleHost receives the built artifact. Pus
 
   Installs to `~/.local/bin` (or `/usr/local/bin`), on `PATH`. Update with `pb update`.
 
-  Before any upload, fail fast:
+  Before any upload, bind the check to the exact binary the deployment will invoke:
 
   ```bash
-  pb --version
-  pb file --help | grep -Fq 'push' || {
-      echo "This pb binary does not expose 'file push'; deployment is unavailable." >&2
+  PB_BIN="${PB_BIN:-$(command -v pb)}"
+  test -n "$PB_BIN" || {
+      echo "No pb binary found; deployment is unavailable." >&2
+      exit 1
+  }
+  "$PB_BIN" --version
+  "$PB_BIN" file --help | grep -Fq 'push' || {
+      echo "$PB_BIN does not expose 'file push'; deployment is unavailable." >&2
       exit 1
   }
   ```
+
+  For Gradle, set `PB_BIN` to the same path configured in `pebblehost.pbBinary`, run this check, then run `./gradlew deployPebbleHost`. If Gradle is intentionally using its `pb`-on-`PATH` default, leave `PB_BIN` unset. Do not validate one binary and deploy with another.
 
   Do not claim deployment succeeded unless this check passes and the server log confirms the plugin loaded.
 
