@@ -26,7 +26,7 @@ Routes design and review decisions to the right architectural principle — DDD,
 | 7 | No speculative abstraction: one implementation needs no interface unless it is a domain-owned port (DIP), a test seam, or a public API contract; otherwise add one only when a second consumer or implementation exists. | Single-impl interfaces with no seam; unused generics, parameters, factories, extension points |
 | 8 | DRY by rule of three: tolerate two copies, extract the single source of truth at the third. | Abstraction gymnastics for two duplicates; copy-paste at three+ sites |
 | 9 | KISS: between designs that both meet the requirement, pick the one with fewer moving parts. | Config knobs, factories, and strategies nothing consumes |
-| 10 | I/O and async live at the edges; server-main-thread work stays on the main thread (see [performance-optimization](../performance-optimization/SKILL.md)). | `getScheduler()`/`CompletableFuture` calls buried in service internals; blocking I/O in handlers |
+| 10 | Never block or do server-only work on the wrong thread: blocking I/O and heavy computation run off the main thread, and Bukkit/main-thread-only APIs stay on it — orchestrating async calls inside services is fine as long as nothing blocks the main thread (see [performance-optimization](../performance-optimization/SKILL.md)). | Blocking I/O, sleeps, or heavy computation on the main thread; Bukkit calls from async contexts; scheduler calls hidden inside service internals |
 | 11 | Separate reads from writes when query shapes diverge from command needs: queries return display shapes, writes go through the domain. | Query logic welded inside command handlers; handlers mutating state to answer reads |
 | 12 | Bukkit's event bus is a notification mechanism, not an event store: never replay listener history as the source of truth; persist state explicitly. | Reconstructing state from `@EventHandler` invocations; treating event history as data |
 
@@ -58,7 +58,7 @@ Run after writing or reviewing code. Answer every probe; fix each failure.
 2. Does the domain package compile without Paper on the classpath? (DDD · hexagonal)
 3. Does any listener or command body contain domain logic or hold business state? (layering · DIP)
 4. Are there 3+ copies of the same logic or constant, or a third site about to be added? (DRY)
-5. Is every interface implemented by exactly one class with one caller and no seam (no domain-owned port, no test mock, no public API contract)? (YAGNI — remove it; keep ports and seams)
+5. Is every interface implemented by exactly one class with no real seam (no domain-owned port, no test mock, no public API contract)? Callers don't matter — a port serves many. (YAGNI — remove it; keep ports and seams)
 6. Does any interface have methods some implementations don't use? (ISP)
 7. Does adding a new variant require editing existing dispatch code? (OCP — only where the variant set is open)
 8. Is any class subclassed to reuse code rather than to specialize? (composition)
