@@ -84,7 +84,7 @@ The domain service depends on `RankRepository`, never on the SQLite class.
 
 1. Name the package/s by business concept, not framework role.
 2. Put each piece of behavior next to the data it governs (start with invariants — the rules that are currently copy-pasted).
-3. Abstract persistence behind an interface only when a second implementation or a test requires it (YAGNI — the router rule 7 still applies).
+3. Abstract persistence behind the domain's own repository interface when the domain must not depend on the adapter (DIP, per router rule 7); the interface stays even with one implementation, but skip it for internal helpers that gain nothing from inversion.
 4. Skip aggregates/ubiquitous-language ceremony if the model is a handful of fields and one rule; the dependency direction is the part that always pays.
 
 ## When DDD does not fit

@@ -42,7 +42,7 @@ The cheapest time to add an interface or a parameter is when the second consumer
 
 | Item | Deletion rule |
 |---|---|
-| Interface with exactly one implementation | Delete the interface; keep the class |
+| Interface with exactly one implementation | Delete the interface; keep the class — unless it is a domain-owned port (DIP), a test seam, or a public API contract, which keep the interface by design |
 | Interface methods no implementation uses | Delete the methods (ISP, in `02-solid-principles.md`) |
 | Factory for one variant | Delete; construct directly |
 | Config option nothing reads | Delete key and wiring |
