@@ -1,6 +1,6 @@
 ---
 name: project-setup
-description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, or project README, wiring a plugin project into the local development-network Gradle tasks, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, writing the scaffold README, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, google-java-format, or development-network versions.
+description: Use when creating a new Paper/Minecraft plugin project, writing or editing its Gradle build files, wrapper, plugin.yml, project README, root AGENTS.md, or GitHub issue/PR templates, wiring a plugin project into the local development-network Gradle tasks, pinning toolchain or plugin versions, configuring CI or releases, or when paper-api coordinates fail to resolve. Triggers include scaffolding a new plugin repo, setting up GitHub community files, writing agent guidance, writing the scaffold README, CalVer versioning, nightly releases, and questions about current Gradle, run-paper, google-java-format, or development-network versions.
 ---
 
 # Project Setup (Paper 26.2 Plugin)
@@ -254,11 +254,9 @@ enforced via Spotless/Checkstyle; one logical change per commit.
 Never commit `run/` server state. To verify: `./gradlew clean check`.
 ```
 
-## GitHub repository template
+## GitHub repository files
 
-Upon request, or when the scaffold is created in a repo meant to become a template, set up **GitHub template-repo support** — community files plus `CONTRIBUTING.md` — so new repos generated from it start with the project conventions. This is separate from the code scaffold; it wires the GitHub-side surface.
-
-Make the repo a template first, through the GitHub UI (Settings → General → Template repository), and document in the README or CONTRIBUTING that consumers use "Use this template".
+Every scaffold includes a basic GitHub community-file set under `.github/` and a root `AGENTS.md`. These are local repository files; making the GitHub repository a reusable template is optional and requires repository-admin access.
 
 ### Community files (`.github/`)
 
@@ -266,17 +264,29 @@ Create these files with the repo's own content, not placeholder text:
 
 - `.github/ISSUE_TEMPLATE/bug_report.yml` — bug report form: environment (Minecraft/Paper version, plugin version), steps to reproduce, expected vs actual behavior, logs/relevant output.
 - `.github/ISSUE_TEMPLATE/feature_request.yml` — feature request form: problem being solved, proposed behavior, acceptance criteria, alternatives considered.
-- `.github/PULL_REQUEST_TEMPLATE.md` — change summary, what was tested (exact commands), and a checklist mirroring the repo's conventions (e.g. `./gradlew clean check` passes, one logical change per commit).
-- `.github/CONTRIBUTING.md` (or root `CONTRIBUTING.md`) — how to set up, build, test, and the pull-request process; point to `AGENTS.md` for agent conventions.
-- `.github/CODE_OF_CONDUCT.md` — a standard code of conduct (e.g. Contributor Covenant), since GitHub surfaces it on every repo; keep it brief and generic.
+- `.github/PULL_REQUEST_TEMPLATE.md` — change summary, what was tested (exact commands), and a checklist mirroring the repo's conventions (for example, `./gradlew clean check` passes and the change is one logical commit).
+- `.github/CONTRIBUTING.md` — setup, build, test, and pull-request process; point to the root `AGENTS.md` for agent conventions.
+- `.github/CODE_OF_CONDUCT.md` — a brief standard code of conduct, such as Contributor Covenant.
 
-Keep the template content aligned with the scaffold's actual commands and quality gates — a template that references commands the repo does not have teaches wrong conventions.
+Keep the files aligned with the scaffold's actual commands and quality gates — a template that references commands the repo does not have teaches wrong conventions.
+
+### Optional GitHub template-repository setting
+
+Only when the user requests a reusable GitHub template, enable **Settings → General → Template repository** after the repository is pushed. This is a remote repository-admin setting, not part of local project scaffolding. Document that consumers should choose **Use this template** in the README or `CONTRIBUTING.md`.
 
 ### Verification
 
-- `git status` shows the new `.github/` and `AGENTS.md` files added, nothing else.
-- `AGENTS.md` exists at repo root and names the repo's exact verification command.
-- The issue/PR templates reference real commands and files from this scaffold (no invented commands).
+```bash
+test -f AGENTS.md
+test -f .github/ISSUE_TEMPLATE/bug_report.yml
+test -f .github/ISSUE_TEMPLATE/feature_request.yml
+test -f .github/PULL_REQUEST_TEMPLATE.md
+test -f .github/CONTRIBUTING.md
+test -f .github/CODE_OF_CONDUCT.md
+git diff --check
+```
+
+The generated `AGENTS.md` must name the repo's exact verification command, and each template must reference real files and commands from the scaffold.
 
 ## Verify the setup
 
