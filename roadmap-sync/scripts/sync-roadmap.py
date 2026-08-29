@@ -60,6 +60,7 @@ def parse_ods_table(ods_path: Path):
         v1 = row_vals[2] if len(row_vals) > 2 else ""
         v2 = row_vals[3] if len(row_vals) > 3 else ""
         resp = row_vals[4] if len(row_vals) > 4 else ""
+        repo = row_vals[5] if len(row_vals) > 5 else ""
 
         plugin = v1 or v2
         if not plugin:
@@ -72,7 +73,8 @@ def parse_ods_table(ods_path: Path):
             "Plugin": plugin,
             "Version": target_version,
             "Developer": dev_display,
-            "Responsibilities": resp
+            "Responsibilities": resp,
+            "Repository": repo
         })
 
     return parsed_records
@@ -81,11 +83,12 @@ def parse_ods_table(ods_path: Path):
 def export_csv(records, csv_path: Path):
     """Write parsed records to CSV format."""
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["Plugin", "Version", "Developer", "Responsibilities"])
+        writer = csv.DictWriter(f, fieldnames=["Plugin", "Version", "Developer", "Responsibilities", "Repository"])
         writer.writeheader()
         for rec in records:
             writer.writerow(rec)
     print(f"✓ Exported CSV: {csv_path} ({len(records)} entries)")
+
 
 def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
     """Convert .ods to .xlsx using headless LibreOffice."""
@@ -105,19 +108,21 @@ def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
         raise FileNotFoundError(f"Expected XLSX output was not created at: {xlsx_path}")
     print(f"✓ Exported XLSX: {xlsx_path} ({xlsx_path.stat().st_size} bytes)")
 
+
 def update_readme(records, readme_path: Path):
     """Generate clean README.md with table overview."""
     readme_content = f"""# Server Setup Roadmap & Plugin Directory
 
-Spreadsheet roadmap tracking Minecraft server plugins, versions, ownership, and responsibilities.
+Spreadsheet roadmap tracking Minecraft server plugins, versions, ownership, responsibilities, and repository links.
 
 ## 📊 Roadmap Overview
 
-| Plugin | Version | Developer | Responsibilities |
-| :--- | :---: | :--- | :--- |
+| Plugin | Version | Developer | Responsibilities | Repository |
+| :--- | :---: | :--- | :--- | :--- |
 """
     for rec in records:
-        readme_content += f"| **{rec['Plugin']}** | `{rec['Version']}` | {rec['Developer']} | {rec['Responsibilities']} |\n"
+        repo_link = f"[{rec['Repository'].replace('https://github.com/', '')}]({rec['Repository']})" if rec['Repository'] else "—"
+        readme_content += f"| **{rec['Plugin']}** | `{rec['Version']}` | {rec['Developer']} | {rec['Responsibilities']} | {repo_link} |\n"
 
     readme_content += """
 ---
