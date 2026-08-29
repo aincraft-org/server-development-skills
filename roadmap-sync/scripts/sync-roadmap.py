@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 """
-sync-roadmap.py - Synchronize Minecraft Server Setup Roadmap & Plugin Directory
-
-Exports .ods spreadsheet into clean .csv and .xlsx formats, regenerates
-the README.md overview table, and optionally commits/pushes to GitHub.
-Supports task-completion updates via --update-plugin.
+export_csv.py - Export server-roadmap.ods (Roadmap & NMS sheets) to CSV and XLSX formats and update README.md
 """
 
 import argparse
@@ -19,113 +15,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
-def update_or_add_plugin_ods(ods_path: Path, plugin_name: str, developer: str = None, version: str = None, responsibilities: str = None, repo_url: str = None):
-    """Update or insert a plugin row into the OpenDocument Spreadsheet (.ods)."""
-    if not ods_path.exists():
-        raise FileNotFoundError(f"Target ODS file not found: {ods_path}")
-
-    tmp_dir = Path(tempfile.mkdtemp())
-    with zipfile.ZipFile(ods_path, 'r') as zin:
-        zin.extractall(tmp_dir)
-
-    content_xml_path = tmp_dir / "content.xml"
-    ET.register_namespace('table', 'urn:oasis:names:tc:opendocument:xmlns:table:1.0')
-    ET.register_namespace('office', 'urn:oasis:names:tc:opendocument:xmlns:office:1.0')
-    ET.register_namespace('text', 'urn:oasis:names:tc:opendocument:xmlns:text:1.0')
-    ET.register_namespace('calcext', 'urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0')
-
-    tree = ET.parse(content_xml_path)
-    root = tree.getroot()
-
-    ns_table = 'urn:oasis:names:tc:opendocument:xmlns:table:1.0'
-    ns_text = 'urn:oasis:names:tc:opendocument:xmlns:text:1.0'
-    ns_office = 'urn:oasis:names:tc:opendocument:xmlns:office:1.0'
-    ns_calcext = 'urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0'
-
-    t = root.findall(f'.//{{{ns_table}}}table')[0]
-    rows = t.findall(f'.//{{{ns_table}}}table-row')
-
-    found_row = None
-    for r in rows:
-        cells = r.findall(f'.//{{{ns_table}}}table-cell')
-        texts = [p.text.strip() for c in cells for p in c.findall(f'.//{{{ns_text}}}p') if p.text]
-        if plugin_name.lower() in [txt.lower() for txt in texts]:
-            found_row = r
-            break
-
-    def set_cell_text(cell, text):
-        cell.attrib[f'{{{ns_office}}}value-type'] = 'string'
-        cell.attrib[f'{{{ns_calcext}}}value-type'] = 'string'
-        p_elems = cell.findall(f'.//{{{ns_text}}}p')
-        if p_elems:
-            p_elems[0].text = text
-        else:
-            p = ET.SubElement(cell, f'{{{ns_text}}}p')
-            p.text = text
-
-    if found_row is not None:
-        cells = found_row.findall(f'.//{{{ns_table}}}table-cell')
-        while len(cells) < 5:
-            nc = ET.SubElement(found_row, f'{{{ns_table}}}table-cell')
-            cells.append(nc)
-
-        if developer is not None:
-            set_cell_text(cells[0], developer)
-        if version == "V1":
-            set_cell_text(cells[1], plugin_name)
-            for p in cells[2].findall(f'.//{{{ns_text}}}p'):
-                cells[2].remove(p)
-        elif version == "V2":
-            set_cell_text(cells[2], plugin_name)
-            for p in cells[1].findall(f'.//{{{ns_text}}}p'):
-                cells[1].remove(p)
-        if responsibilities is not None:
-            set_cell_text(cells[3], responsibilities)
-        if repo_url is not None:
-            set_cell_text(cells[4], repo_url)
-        print(f"✓ Updated existing plugin '{plugin_name}' in {ods_path}")
-    else:
-        new_row = ET.SubElement(t, f'{{{ns_table}}}table-row', {f'{{{ns_table}}}style-name': 'ro1'})
-        c0 = ET.SubElement(new_row, f'{{{ns_table}}}table-cell')
-        if developer:
-            set_cell_text(c0, developer)
-            
-        c1 = ET.SubElement(new_row, f'{{{ns_table}}}table-cell')
-        if version != "V2":
-            set_cell_text(c1, plugin_name)
-            
-        c2 = ET.SubElement(new_row, f'{{{ns_table}}}table-cell')
-        if version == "V2":
-            set_cell_text(c2, plugin_name)
-            
-        c3 = ET.SubElement(new_row, f'{{{ns_table}}}table-cell')
-        if responsibilities:
-            set_cell_text(c3, responsibilities)
-            
-        c4 = ET.SubElement(new_row, f'{{{ns_table}}}table-cell')
-        if repo_url:
-            set_cell_text(c4, repo_url)
-        print(f"✓ Added new plugin '{plugin_name}' to {ods_path}")
-
-    tree.write(content_xml_path, encoding='utf-8', xml_declaration=True)
-
-    with zipfile.ZipFile(ods_path, 'w', compression=zipfile.ZIP_DEFLATED) as zout:
-        mimetype_path = tmp_dir / 'mimetype'
-        if mimetype_path.exists():
-            zout.write(mimetype_path, 'mimetype', compress_type=zipfile.ZIP_STORED)
-        for root_p, _, files in os.walk(tmp_dir):
-            for file in files:
-                if file == 'mimetype':
-                    continue
-                full_p = Path(root_p) / file
-                rel_p = full_p.relative_to(tmp_dir)
-                zout.write(full_p, rel_p)
-
-    shutil.rmtree(tmp_dir)
-
-
-def parse_ods_table(ods_path: Path):
-    """Parse table rows from an OpenDocument Spreadsheet (.ods) file."""
+def parse_all_ods_sheets(ods_path: Path):
+    """Parse all sheets from an OpenDocument Spreadsheet (.ods) file."""
     if not ods_path.exists():
         raise FileNotFoundError(f"Source file not found: {ods_path}")
 
@@ -140,29 +31,37 @@ def parse_ods_table(ods_path: Path):
         tables = root.findall('.//table:table', namespaces)
         if not tables:
             raise ValueError(f"No tables found in {ods_path}")
-        t = tables[0]
-        rows = t.findall('.//table:table-row', namespaces)
 
-    parsed_records = []
-    for r in rows:
-        cells = r.findall('.//table:table-cell', namespaces)
-        row_vals = []
-        for c in cells:
-            repeat = int(c.attrib.get('{urn:oasis:names:tc:opendocument:xmlns:table:1.0}number-columns-repeated', '1'))
-            txt_elems = c.findall('.//text:p', namespaces)
-            txt = ' '.join(elem.text for elem in txt_elems if elem.text).strip()
-            if repeat > 20 and not txt:
-                continue
-            for _ in range(min(repeat, 10)):
-                row_vals.append(txt)
-        while row_vals and not row_vals[-1]:
-            row_vals.pop()
-        if not any(row_vals):
+    sheets_data = {}
+    for table_elem in tables:
+        table_name = table_elem.attrib.get(f'{{{namespaces["table"]}}}name', 'Sheet1')
+        rows = table_elem.findall('.//table:table-row', namespaces)
+        parsed_rows = []
+        for r in rows:
+            cells = r.findall('.//table:table-cell', namespaces)
+            row_vals = []
+            for c in cells:
+                repeat = int(c.attrib.get(f'{{{namespaces["table"]}}}number-columns-repeated', '1'))
+                txt_elems = c.findall('.//text:p', namespaces)
+                txt = ' '.join(elem.text for elem in txt_elems if elem.text).strip()
+                if repeat > 20 and not txt:
+                    continue
+                for _ in range(min(repeat, 10)):
+                    row_vals.append(txt)
+            while row_vals and not row_vals[-1]:
+                row_vals.pop()
+            if row_vals:
+                parsed_rows.append(row_vals)
+        sheets_data[table_name] = parsed_rows
+
+    return sheets_data
+
+
+def process_roadmap_sheet(raw_rows):
+    records = []
+    for row_vals in raw_rows:
+        if not row_vals or 'Developer' in row_vals[0]:
             continue
-
-        if 'Developer' in row_vals[0]:
-            continue
-
         dev = row_vals[0] if len(row_vals) > 0 else ""
         v1 = row_vals[1] if len(row_vals) > 1 else ""
         v2 = row_vals[2] if len(row_vals) > 2 else ""
@@ -176,21 +75,43 @@ def parse_ods_table(ods_path: Path):
         target_version = "V1" if v1 else ("V2" if v2 else "")
         dev_display = dev if dev else "3rd Party"
 
-        parsed_records.append({
+        records.append({
             "Plugin": plugin,
             "Version": target_version,
             "Developer": dev_display,
             "Responsibilities": resp,
             "Repository": repo
         })
+    return records
 
-    return parsed_records
+
+def process_nms_sheet(raw_rows):
+    records = []
+    for row_vals in raw_rows:
+        if not row_vals or 'Plugin' in row_vals[0]:
+            continue
+        plugin = row_vals[0] if len(row_vals) > 0 else ""
+        uses_nms = row_vals[1] if len(row_vals) > 1 else ""
+        tier = row_vals[2] if len(row_vals) > 2 else ""
+        details = row_vals[3] if len(row_vals) > 3 else ""
+        repo = row_vals[4] if len(row_vals) > 4 else ""
+
+        if not plugin:
+            continue
+
+        records.append({
+            "Plugin": plugin,
+            "Uses NMS": uses_nms,
+            "Evidence Tier": tier,
+            "Technical Details & Seams": details,
+            "Repository": repo
+        })
+    return records
 
 
-def export_csv(records, csv_path: Path):
-    """Write parsed records to CSV format."""
+def export_csv_file(records, csv_path: Path, fieldnames):
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["Plugin", "Version", "Developer", "Responsibilities", "Repository"])
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for rec in records:
             writer.writerow(rec)
@@ -198,16 +119,7 @@ def export_csv(records, csv_path: Path):
 
 
 def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
-    """Convert .ods to .xlsx using headless LibreOffice."""
-    cmd = [
-        "libreoffice",
-        "--headless",
-        "--convert-to",
-        "xlsx",
-        "--outdir",
-        str(output_dir),
-        str(ods_path)
-    ]
+    cmd = ["libreoffice", "--headless", "--convert-to", "xlsx", "--outdir", str(output_dir), str(ods_path)]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise RuntimeError(f"LibreOffice XLSX conversion failed (exit code {res.returncode}): {res.stderr.strip()}")
@@ -216,20 +128,34 @@ def export_xlsx(ods_path: Path, xlsx_path: Path, output_dir: Path):
     print(f"✓ Exported XLSX: {xlsx_path} ({xlsx_path.stat().st_size} bytes)")
 
 
-def update_readme(records, readme_path: Path):
-    """Generate clean README.md with table overview."""
+def update_readme(roadmap_records, nms_records, readme_path: Path):
     readme_content = f"""# Server Setup Roadmap & Plugin Directory
 
-Spreadsheet roadmap tracking Minecraft server plugins, versions, ownership, responsibilities, and repository links.
+Spreadsheet roadmap tracking Minecraft server plugins, versions, ownership, responsibilities, repository links, and NMS usage audits.
 
 ## 📊 Roadmap Overview
 
 | Plugin | Version | Developer | Responsibilities | Repository |
 | :--- | :---: | :--- | :--- | :--- |
 """
-    for rec in records:
+    for rec in roadmap_records:
         repo_link = f"[{rec['Repository'].replace('https://github.com/', '')}]({rec['Repository']})" if rec['Repository'] else "—"
         readme_content += f"| **{rec['Plugin']}** | `{rec['Version']}` | {rec['Developer']} | {rec['Responsibilities']} | {repo_link} |\n"
+
+    readme_content += """
+---
+
+## 🧩 NMS & Server Internals Audit
+
+Audit of Minecraft internal (`net.minecraft.*` / `org.bukkit.craftbukkit.*`) usage across all roadmap repositories:
+
+| Plugin | Uses NMS | Evidence Tier | Technical Details & Seams | Repository |
+| :--- | :---: | :--- | :--- | :--- |
+"""
+    for rec in nms_records:
+        status_badge = f"`{rec['Uses NMS']}`"
+        repo_link = f"[{rec['Repository'].replace('https://github.com/', '')}]({rec['Repository']})" if rec['Repository'] else "—"
+        readme_content += f"| **{rec['Plugin']}** | {status_badge} | {rec['Evidence Tier']} | {rec['Technical Details & Seams']} | {repo_link} |\n"
 
     readme_content += """
 ---
@@ -238,15 +164,16 @@ Spreadsheet roadmap tracking Minecraft server plugins, versions, ownership, resp
 
 | Format | File | Description |
 | :--- | :--- | :--- |
-| **CSV** | [`server-roadmap.csv`](./server-roadmap.csv) | Raw comma-separated values (for scripts, DBs, and CI) |
-| **Excel (XLSX)** | [`server-roadmap.xlsx`](./server-roadmap.xlsx) | Native Microsoft Excel format |
-| **OpenDocument (ODS)** | [`server-roadmap.ods`](./server-roadmap.ods) | LibreOffice / OpenOffice Calc master format |
+| **Roadmap CSV** | [`server-roadmap.csv`](./server-roadmap.csv) | Primary plugin roadmap dataset |
+| **NMS Audit CSV** | [`server-roadmap-nms.csv`](./server-roadmap-nms.csv) | NMS and server internals audit dataset |
+| **Excel (XLSX)** | [`server-roadmap.xlsx`](./server-roadmap.xlsx) | Multi-sheet Microsoft Excel workbook (`Roadmap` + `NMS` tabs) |
+| **OpenDocument (ODS)** | [`server-roadmap.ods`](./server-roadmap.ods) | Multi-sheet LibreOffice / OpenOffice Calc master file |
 
 ---
 
 ## 🛠️ Syncing & Updating
 
-When you update `server-roadmap.ods`, run the sync script to automatically regenerate the CSV, XLSX, and README markdown table:
+When you update `server-roadmap.ods`, run the sync script to automatically regenerate the CSVs, XLSX, and README markdown tables:
 
 ```bash
 python3 export_csv.py
@@ -263,7 +190,6 @@ python3 export_csv.py --push
 
 
 def git_push(repo_dir: Path, message: str = "Update server roadmap exports (CSV, XLSX, README)"):
-    """Stage, commit, and push updates to the remote git repository when explicitly requested."""
     os.chdir(repo_dir)
     subprocess.run(["git", "add", "."], check=True)
     status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, check=True)
@@ -279,110 +205,38 @@ def git_push(repo_dir: Path, message: str = "Update server roadmap exports (CSV,
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Sync and export server roadmap (.ods -> .csv / .xlsx / README)")
-    parser.add_argument(
-        "--repo-dir",
-        type=Path,
-        default=Path("/home/jlo/dev/server-roadmap"),
-        help="Path to server-roadmap repository directory"
-    )
-    parser.add_argument(
-        "--ods-file",
-        type=Path,
-        default=None,
-        help="Path to source .ods file (defaults to <repo-dir>/server-roadmap.ods)"
-    )
-    parser.add_argument(
-        "--format",
-        choices=["csv", "xlsx", "all"],
-        default="all",
-        help="Export format (csv, xlsx, or all)"
-    )
-    parser.add_argument(
-        "--push",
-        action="store_true",
-        default=False,
-        help="Explicitly commit and push changes to remote GitHub repository (opt-in)"
-    )
-    parser.add_argument(
-        "--commit-msg",
-        type=str,
-        default="Update server roadmap exports (CSV, XLSX, README)",
-        help="Git commit message when --push is used"
-    )
-    parser.add_argument(
-        "--update-plugin",
-        type=str,
-        default=None,
-        help="Plugin name to update or add upon task/milestone completion"
-    )
-    parser.add_argument(
-        "--developer",
-        type=str,
-        default=None,
-        help="Developer name when updating a plugin"
-    )
-    parser.add_argument(
-        "--version-milestone",
-        choices=["V1", "V2"],
-        default=None,
-        help="Milestone version (V1 or V2)"
-    )
-    parser.add_argument(
-        "--responsibilities",
-        type=str,
-        default=None,
-        help="Responsibilities / feature summary when updating a plugin"
-    )
-    parser.add_argument(
-        "--repo-url",
-        type=str,
-        default=None,
-        help="GitHub repository URL when updating a plugin"
-    )
+    parser = argparse.ArgumentParser(description="Export server-roadmap (.ods -> .csv / .xlsx / README)")
+    parser.add_argument("--format", choices=["csv", "xlsx", "all"], default="all", help="Export format")
+    parser.add_argument("--push", action="store_true", default=False, help="Commit and push changes to GitHub (opt-in)")
+    parser.add_argument("--commit-msg", type=str, default="Update server roadmap exports (CSV, XLSX, README)", help="Git commit message")
 
     args = parser.parse_args()
-    repo_dir = args.repo_dir.resolve()
-    ods_path = (args.ods_file or (repo_dir / "server-roadmap.ods")).resolve()
+    repo_dir = Path(__file__).parent.resolve()
+    ods_path = repo_dir / "server-roadmap.ods"
     csv_path = repo_dir / "server-roadmap.csv"
+    nms_csv_path = repo_dir / "server-roadmap-nms.csv"
     xlsx_path = repo_dir / "server-roadmap.xlsx"
     readme_path = repo_dir / "README.md"
 
-    if not repo_dir.exists():
-        print(f"Error: Repository directory {repo_dir} does not exist", file=sys.stderr)
-        sys.exit(1)
+    sheets_data = parse_all_ods_sheets(ods_path)
+    roadmap_rows = sheets_data.get('Roadmap', sheets_data.get('Sheet1', []))
+    nms_rows = sheets_data.get('NMS', [])
 
-    # 1. Update ODS if --update-plugin passed (strictly repository scoped)
-    if args.update_plugin:
-        if args.repo_url and not (args.repo_url.startswith("https://") or args.repo_url.startswith("http://")):
-            print(f"Error: Invalid repo-url '{args.repo_url}'. Must be a valid URL.", file=sys.stderr)
-            sys.exit(1)
-
-        update_or_add_plugin_ods(
-            ods_path,
-            plugin_name=args.update_plugin,
-            developer=args.developer,
-            version=args.version_milestone,
-            responsibilities=args.responsibilities,
-            repo_url=args.repo_url
-        )
-
-    print(f"Reading roadmap from: {ods_path}")
-    records = parse_ods_table(ods_path)
+    roadmap_records = process_roadmap_sheet(roadmap_rows)
+    nms_records = process_nms_sheet(nms_rows)
 
     if args.format in ["csv", "all"]:
-        export_csv(records, csv_path)
+        export_csv_file(roadmap_records, csv_path, ["Plugin", "Version", "Developer", "Responsibilities", "Repository"])
+        if nms_records:
+            export_csv_file(nms_records, nms_csv_path, ["Plugin", "Uses NMS", "Evidence Tier", "Technical Details & Seams", "Repository"])
 
     if args.format in ["xlsx", "all"]:
         export_xlsx(ods_path, xlsx_path, repo_dir)
 
-    update_readme(records, readme_path)
+    update_readme(roadmap_records, nms_records, readme_path)
 
     if args.push:
-        commit_msg = args.commit_msg
-        if args.update_plugin and args.commit_msg == "Update server roadmap exports (CSV, XLSX, README)":
-            commit_msg = f"Update '{args.update_plugin}' in server roadmap"
-        git_push(repo_dir, commit_msg)
+        git_push(repo_dir, args.commit_msg)
 
 
 if __name__ == "__main__":
