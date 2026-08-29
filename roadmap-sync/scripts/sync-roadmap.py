@@ -21,6 +21,9 @@ from pathlib import Path
 
 def update_or_add_plugin_ods(ods_path: Path, plugin_name: str, developer: str = None, version: str = None, responsibilities: str = None, repo_url: str = None):
     """Update or insert a plugin row into the OpenDocument Spreadsheet (.ods)."""
+    if not ods_path.exists():
+        raise FileNotFoundError(f"Target ODS file not found: {ods_path}")
+
     tmp_dir = Path(tempfile.mkdtemp())
     with zipfile.ZipFile(ods_path, 'r') as zin:
         zin.extractall(tmp_dir)
@@ -349,8 +352,12 @@ def main():
         print(f"Error: Repository directory {repo_dir} does not exist", file=sys.stderr)
         sys.exit(1)
 
-    # 1. Update ODS if --update-plugin passed
+    # 1. Update ODS if --update-plugin passed (strictly repository scoped)
     if args.update_plugin:
+        if args.repo_url and not (args.repo_url.startswith("https://") or args.repo_url.startswith("http://")):
+            print(f"Error: Invalid repo-url '{args.repo_url}'. Must be a valid URL.", file=sys.stderr)
+            sys.exit(1)
+
         update_or_add_plugin_ods(
             ods_path,
             plugin_name=args.update_plugin,
@@ -359,17 +366,6 @@ def main():
             responsibilities=args.responsibilities,
             repo_url=args.repo_url
         )
-        # Also sync ambient Documents copy if it exists
-        doc_ods = Path("/home/jlo/Documents/server-roadmap.ods")
-        if doc_ods.exists():
-            update_or_add_plugin_ods(
-                doc_ods,
-                plugin_name=args.update_plugin,
-                developer=args.developer,
-                version=args.version_milestone,
-                responsibilities=args.responsibilities,
-                repo_url=args.repo_url
-            )
 
     print(f"Reading roadmap from: {ods_path}")
     records = parse_ods_table(ods_path)
