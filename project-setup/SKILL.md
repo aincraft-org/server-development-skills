@@ -232,6 +232,52 @@ Notes:
 
 Verify the README matches `plugin.yml` before committing: name, description, version, and API version must not drift from the scaffold.
 
+## Agent guidance file
+
+Every scaffolded plugin repo carries an `AGENTS.md` at the repository root, written for the agent harnesses that will work in the repo. State the repo's conventions explicitly — agents start each session cold. Keep it short and factual; it is not documentation for humans.
+
+Cover at minimum:
+
+- **What this repo is** — one line mirroring the README description.
+- **Conventions agents must follow** — the pinned Gradle/quality gates (`./gradlew clean check` must pass), the CalVer versioning rule, the package/style rules, and any repo-specific layout (e.g. which module holds the plugin.yml).
+- **Do-not-do list** — anything the plugin repo must never do: hand-formatting, unpinned versions, committing `run/` server state, mixing unrelated changes into a commit.
+- **Verification commands** — the exact commands that prove a change is complete (`./gradlew clean check`, plus runtime/network verification where applicable).
+
+Write it from the actual scaffold and convention decisions — never a generic placeholder. Update it when the repo's conventions change, so the file never drifts from reality. Example fragment:
+
+```markdown
+# AGENTS.md — ExamplePlugin
+
+Paper plugin. Conventions: `./gradlew clean check` must pass before
+completion; versions are CalVer from `ci-release`; Google Java style
+enforced via Spotless/Checkstyle; one logical change per commit.
+Never commit `run/` server state. To verify: `./gradlew clean check`.
+```
+
+## GitHub repository template
+
+Upon request, or when the scaffold is created in a repo meant to become a template, set up **GitHub template-repo support** — community files plus `CONTRIBUTING.md` — so new repos generated from it start with the project conventions. This is separate from the code scaffold; it wires the GitHub-side surface.
+
+Make the repo a template first, through the GitHub UI (Settings → General → Template repository), and document in the README or CONTRIBUTING that consumers use "Use this template".
+
+### Community files (`.github/`)
+
+Create these files with the repo's own content, not placeholder text:
+
+- `.github/ISSUE_TEMPLATE/bug_report.yml` — bug report form: environment (Minecraft/Paper version, plugin version), steps to reproduce, expected vs actual behavior, logs/relevant output.
+- `.github/ISSUE_TEMPLATE/feature_request.yml` — feature request form: problem being solved, proposed behavior, acceptance criteria, alternatives considered.
+- `.github/PULL_REQUEST_TEMPLATE.md` — change summary, what was tested (exact commands), and a checklist mirroring the repo's conventions (e.g. `./gradlew clean check` passes, one logical change per commit).
+- `.github/CONTRIBUTING.md` (or root `CONTRIBUTING.md`) — how to set up, build, test, and the pull-request process; point to `AGENTS.md` for agent conventions.
+- `.github/CODE_OF_CONDUCT.md` — a standard code of conduct (e.g. Contributor Covenant), since GitHub surfaces it on every repo; keep it brief and generic.
+
+Keep the template content aligned with the scaffold's actual commands and quality gates — a template that references commands the repo does not have teaches wrong conventions.
+
+### Verification
+
+- `git status` shows the new `.github/` and `AGENTS.md` files added, nothing else.
+- `AGENTS.md` exists at repo root and names the repo's exact verification command.
+- The issue/PR templates reference real commands and files from this scaffold (no invented commands).
+
 ## Verify the setup
 
 ```bash
