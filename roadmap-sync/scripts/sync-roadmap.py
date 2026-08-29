@@ -53,14 +53,14 @@ def parse_ods_table(ods_path: Path):
             continue
 
         # Skip headers
-        if 'Developer' in row_vals[0] or 'Main Features' in ''.join(row_vals):
+        if 'Developer' in row_vals[0]:
             continue
 
         dev = row_vals[0] if len(row_vals) > 0 else ""
-        v1 = row_vals[2] if len(row_vals) > 2 else ""
-        v2 = row_vals[3] if len(row_vals) > 3 else ""
-        resp = row_vals[4] if len(row_vals) > 4 else ""
-        repo = row_vals[5] if len(row_vals) > 5 else ""
+        v1 = row_vals[1] if len(row_vals) > 1 else ""
+        v2 = row_vals[2] if len(row_vals) > 2 else ""
+        resp = row_vals[3] if len(row_vals) > 3 else ""
+        repo = row_vals[4] if len(row_vals) > 4 else ""
 
         plugin = v1 or v2
         if not plugin:
